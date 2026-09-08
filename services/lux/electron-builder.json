@@ -1,0 +1,45 @@
+{
+  "appId": "com.luxlink.lighting-network-analyzer",
+  "productName": "Lux Link",
+  "directories": {
+    "output": "desktop-dist"
+  },
+  "files": [
+    "desktop-web/**/*",
+    "public/app-icon.*",
+    "electron/**/*",
+    "lib/release-check.cjs",
+    "package.json"
+  ],
+  "asar": true,
+  "npmRebuild": false,
+  "extraMetadata": {
+    "main": "electron/main.cjs"
+  },
+  "win": {
+    "icon": "public/app-icon.ico",
+    "target": [{ "target": "nsis", "arch": ["x64"] }],
+    "artifactName": "Lux-Link-${version}-windows-${arch}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "public/app-icon.ico",
+    "uninstallerIcon": "public/app-icon.ico",
+    "installerHeaderIcon": "public/app-icon.ico"
+  },
+  "mac": {
+    "extendInfo": { "LSUIElement": true },
+    "category": "public.app-category.utilities",
+    "icon": "public/app-icon.icns",
+    "target": ["dmg", "zip"],
+    "artifactName": "Lux-Link-${version}-mac-${arch}.${ext}"
+  },
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "horner516",
+      "repo": "lighting-network-analyzer"
+    }
+  ]
+}

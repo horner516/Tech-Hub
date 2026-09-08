@@ -1,0 +1,919 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080b10">
+  <title>D’San Master View</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080b10;
+      --panel: #111721;
+      --panel-2: #161e2a;
+      --line: #263244;
+      --muted: #93a4b8;
+      --text: #f5f8fb;
+      --cyan: #4dd6e8;
+      --green: #35d07f;
+      --yellow: #ffd166;
+      --red: #ff5263;
+      --shadow: 0 22px 60px rgba(0, 0, 0, .28);
+      --clock-font: Consolas, "SFMono-Regular", Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% -10%, rgba(77,214,232,.09), transparent 34rem),
+        linear-gradient(180deg, #0b1017 0%, var(--bg) 45%);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+    }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { width: min(1460px, 100%); margin: 0 auto; padding: 24px; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-bottom: 22px; }
+    .identity { display: flex; align-items: center; gap: 13px; }
+    .mark { width: 42px; height: 42px; border: 1px solid #365267; border-radius: 12px; display: grid; place-items: center; background: #111d27; color: var(--cyan); font-weight: 800; letter-spacing: -.08em; }
+    h1 { margin: 0; font-size: 1.12rem; letter-spacing: .01em; }
+    .subtitle { color: var(--muted); font-size: .86rem; margin-top: 3px; }
+    .header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 9px; }
+    .settings-button, .primary, .secondary {
+      border: 1px solid var(--line); border-radius: 10px; padding: 10px 15px; color: var(--text); background: var(--panel-2);
+    }
+    .settings-button:hover, .secondary:hover { border-color: #486078; }
+    .primary { background: var(--cyan); color: #041014; border-color: transparent; font-weight: 750; }
+    .grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(330px, .8fr); gap: 18px; }
+    .card { background: rgba(17,23,33,.94); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+    .card-head { min-height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 16px 19px; border-bottom: 1px solid var(--line); }
+    .card-title { display: flex; align-items: center; gap: 10px; font-weight: 720; }
+    .status { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: .8rem; text-transform: capitalize; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #657386; box-shadow: 0 0 0 4px rgba(101,115,134,.1); }
+    .status[data-state="connected"] .status-dot { background: var(--green); box-shadow: 0 0 0 4px rgba(53,208,127,.12); }
+    .status[data-state="connecting"] .status-dot, .status[data-state="waiting"] .status-dot { background: var(--yellow); }
+    .timer-stage { display: grid; grid-template-columns: 80px 1fr; min-height: 340px; }
+    body.hide-lights .timer-stage { grid-template-columns: 1fr; }
+    body.hide-lights .lights { display: none; }
+    .lights { display: flex; flex-direction: column; justify-content: center; gap: 19px; align-items: center; border-right: 1px solid var(--line); background: #0d131b; }
+    .lamp { width: 31px; height: 31px; border-radius: 50%; background: #222b37; border: 1px solid #34404f; }
+    .lamp.on.green { background: var(--green); box-shadow: 0 0 24px rgba(53,208,127,.68); }
+    .lamp.on.yellow { background: var(--yellow); box-shadow: 0 0 24px rgba(255,209,102,.68); }
+    .lamp.on.red { background: var(--red); box-shadow: 0 0 24px rgba(255,82,99,.68); }
+    .time-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; }
+    .program-chip { color: var(--cyan); border: 1px solid rgba(77,214,232,.28); background: rgba(77,214,232,.07); border-radius: 999px; padding: 7px 12px; font-size: .78rem; font-weight: 780; text-transform: uppercase; letter-spacing: .1em; }
+    .clock { font-family: var(--clock-font); font-size: clamp(5rem, 11vw, 10.5rem); line-height: .92; font-weight: 760; letter-spacing: -.075em; margin: 27px 0 22px; font-variant-numeric: tabular-nums; text-shadow: 0 0 40px rgba(245,248,251,.08); }
+    .timer-state { color: var(--muted); display: flex; align-items: center; gap: 10px; }
+    .run-icon { width: 8px; height: 8px; border-radius: 2px; background: var(--muted); }
+    .timer-state.running .run-icon { border-radius: 50%; background: var(--green); animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .45; } }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); }
+    .metric { padding: 16px 18px; border-right: 1px solid var(--line); }
+    .metric:last-child { border: 0; }
+    .metric-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .metric-copy { border: 1px solid var(--line); border-radius: 7px; padding: 3px 9px; background: #0e141c; color: var(--muted); font-size: .74rem; }
+    .metric-label { color: var(--muted); font-size: .74rem; text-transform: uppercase; letter-spacing: .09em; margin-bottom: 7px; }
+    .metric-value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+    .metric-value.multi-line { white-space: pre-wrap; text-align: left; }
+    .network-links { display: grid; gap: 7px; text-align: left; align-content: start; }
+    .network-links a { color: var(--cyan); text-decoration: none; font-size: .86rem; }
+    .network-links a:hover { text-decoration: underline; }
+    .network-metrics { grid-template-columns: 150px 1fr; }
+    .network-card { grid-column: 1 / -1; display: flex; align-items: center; }
+    .network-card .card-head { min-height: 0; padding: 12px 18px; border-bottom: 0; flex-shrink: 0; }
+    .network-card .network-metrics { flex: 1; min-width: 0; border-top: 0; border-left: 1px solid var(--line); }
+    .network-card .metric { min-width: 0; padding: 10px 16px; }
+    .network-card .metric-value { margin-top: 3px; }
+    .network-card .network-links { display: flex; flex-wrap: wrap; gap: 5px 18px; }
+    .network-card .network-links a { overflow-wrap: anywhere; }
+    .network-card .metric-copy { flex-shrink: 0; }
+    .cue-body { min-height: 340px; display: grid; place-items: center; padding: 24px; position: relative; }
+    .cue-display { width: min(100%, 360px); aspect-ratio: 1.12; border: 1px solid #334156; border-radius: 24px; background: linear-gradient(145deg, #192230, #0c1118); display: grid; place-items: center; text-align: center; position: relative; overflow: hidden; }
+    .cue-display::before { content: ""; position: absolute; inset: 12px; border: 1px solid rgba(255,255,255,.045); border-radius: 16px; }
+    .cue-symbol { width: 8.5rem; height: 6.4rem; color: #57677c; transition: color .12s, transform .12s, text-shadow .12s; }
+    .cue-symbol svg, .fullscreen-direction svg { display: block; width: 100%; height: 100%; fill: currentColor; }
+    .cue-label { color: var(--muted); margin-top: 8px; font-size: .9rem; }
+    .cue-display.active .cue-symbol { transform: scale(1.04); }
+    .cue-display.active.next .cue-symbol { color: var(--green); text-shadow: 0 0 35px rgba(53,208,127,.42); }
+    .cue-display.active.previous .cue-symbol { color: var(--red); text-shadow: 0 0 35px rgba(255,82,99,.35); }
+    .cue-display.active.blank_on .cue-symbol { color: var(--yellow); text-shadow: 0 0 35px rgba(255,209,102,.4); }
+    .cue-display.flash .cue-symbol, .fullscreen-direction.flash { animation: cue-flash .5s linear; }
+    @keyframes cue-flash { 0%, 45%, 100% { opacity: 1; } 20%, 70% { opacity: .08; } }
+    .cue-meta { display: flex; justify-content: space-between; padding: 15px 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
+    .fullscreen-view { position: fixed; inset: 0; z-index: 100; visibility: hidden; pointer-events: none; background: #000; display: grid; place-items: center; }
+    .fullscreen-view:fullscreen { visibility: visible; pointer-events: auto; }
+    .clock, .fullscreen-clock, .mobile-clock { color: var(--timer-color, #f5f8fb); width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) .28em minmax(0, 1fr); align-items: center; letter-spacing: 0; }
+    .clock-left, .clock-right { display: flex; align-items: center; min-width: 0; }
+    .clock-left { justify-content: flex-end; }
+    .clock-right { justify-content: flex-start; }
+    .clock-digit { flex: 0 0 .6em; width: .6em; text-align: center; letter-spacing: 0; }
+    .clock-colon { display: block; width: .28em; text-align: center; letter-spacing: 0; }
+    .presenter-message { display: none; width: 100%; text-align: center; font-weight: 750; font-size: clamp(18px, 4vw, 72px); line-height: 1.1; overflow-wrap: anywhere; white-space: pre-wrap; }
+    body.has-message .presenter-message { display: block; }
+    body.has-message .fullscreen-stage { grid-template-rows: minmax(0, 1fr) 22% 24%; }
+    .presenter-message.flashing { animation: message-flash 1.5s ease-in-out infinite; }
+    @keyframes message-flash { 50% { opacity: .2; } }
+    #message-dialog form { display: grid; gap: 14px; }
+    #message-text { width: 100%; background: #0c1118; color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 12px; font: inherit; }
+    input[type="color"] { width: 100%; height: 40px; border: 1px solid var(--line); border-radius: 8px; background: transparent; }
+    .scan-result { padding: 12px 0; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+    .scan-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    #scan-results { max-height: 250px; overflow-y: auto; }
+    #scan-status { margin: 12px 0; color: var(--muted); font-size: .85rem; }
+    body.browser-display .fullscreen-view { visibility: visible; pointer-events: auto; }
+    body.browser-display .shell { display: none; }
+    body.browser-display { overflow: hidden; background: #000; }
+    .browser-fullscreen-button { position: absolute; top: 16px; right: 16px; z-index: 101; }
+    .fullscreen-view:fullscreen .browser-fullscreen-button { display: none; }
+    #update-dialog p { padding: 0 22px; max-width: 480px; }
+    #update-dialog .dialog-actions { padding: 16px 22px; }
+    .fullscreen-stage { width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; display: grid; grid-template-rows: minmax(0, 1fr) 28%; place-items: center; padding: 3vh 3vw 4vh; background: radial-gradient(circle at 50% 44%, #111a24 0, #05080c 42%, #000 74%); overflow: hidden; }
+    .fullscreen-clock { align-self: end; max-width: 100%; font-family: var(--clock-font); font-size: min(28vw, 49vh); font-weight: 760; line-height: .86; letter-spacing: -.085em; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: center; }
+    .fullscreen-directions { align-self: start; width: min(64vw, 104vh); display: grid; grid-template-columns: 1fr 1fr; gap: min(4vw, 8vh); place-items: center; }
+    .fullscreen-direction { width: min(30vw, 48vh); height: min(19vw, 29vh); max-width: 100%; opacity: .13; transform: scale(.94); transition: opacity .12s, transform .12s, filter .12s; }
+    body.has-message .fullscreen-direction { height: min(15vw, 21vh); }
+    .fullscreen-direction.active { opacity: 1; transform: scale(1.04); }
+    .fullscreen-direction.next { color: var(--green); }
+    .fullscreen-direction.next.active { filter: drop-shadow(0 0 3vw rgba(53,208,127,.58)); }
+    .fullscreen-direction.previous { color: var(--red); }
+    .fullscreen-direction.previous.active { filter: drop-shadow(0 0 3vw rgba(255,82,99,.58)); }
+    .mobile-view { position: fixed; inset: 0; z-index: 90; display: none; overflow-y: auto; background: #080b10; }
+    body.mobile-open { overflow: hidden; }
+    body.mobile-open .mobile-view { display: block; }
+    .mobile-shell { width: min(100%, 560px); min-height: 100%; margin: 0 auto; padding: 16px; }
+    .mobile-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+    .mobile-head .identity { min-width: 0; }
+    .mobile-head .mark { width: 38px; height: 38px; flex: 0 0 auto; }
+    .mobile-head h2 { margin: 0; font-size: 1rem; }
+    .mobile-actions { display: flex; gap: 7px; }
+    .mobile-actions button { padding: 9px 11px; }
+    .mobile-stack { display: grid; gap: 14px; }
+    .mobile-card { overflow: hidden; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); box-shadow: var(--shadow); }
+    .mobile-card-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); font-weight: 720; }
+    .mobile-timer { display: grid; place-items: center; min-height: 270px; padding: 20px 12px 24px; text-align: center; }
+    .mobile-lights { display: flex; gap: 17px; margin-bottom: 20px; }
+    body.hide-lights .mobile-lights { display: none; }
+    .mobile-lights .lamp { width: 24px; height: 24px; }
+    .mobile-program { color: var(--cyan); font-size: .78rem; font-weight: 780; letter-spacing: .09em; text-transform: uppercase; }
+    .mobile-clock { max-width: 100%; margin: 17px 0 18px; font-family: var(--clock-font); font-size: clamp(4.8rem, 24vw, 8rem); font-weight: 760; line-height: .88; letter-spacing: -.075em; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .mobile-metrics { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
+    .mobile-metrics .metric { border-bottom: 1px solid var(--line); }
+    .mobile-metrics .metric:nth-child(2n) { border-right: 0; }
+    .mobile-metrics .metric:nth-last-child(-n+2) { border-bottom: 0; }
+    .mobile-cues { padding: 25px 18px 20px; text-align: center; }
+    .mobile-directions { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 2px auto 19px; }
+    .mobile-direction { display: grid; place-items: center; min-height: 112px; border: 1px solid #334156; border-radius: 18px; background: linear-gradient(145deg, #192230, #0c1118); color: #526175; opacity: .4; transition: opacity .12s, transform .12s, color .12s, filter .12s; }
+    .mobile-direction svg { width: 72%; height: auto; fill: currentColor; }
+    .mobile-direction.next.active { color: var(--green); filter: drop-shadow(0 0 18px rgba(53,208,127,.58)); }
+    .mobile-direction.previous.active { color: var(--red); filter: drop-shadow(0 0 18px rgba(255,82,99,.58)); }
+    .mobile-direction.active { opacity: 1; transform: scale(1.025); }
+    .mobile-direction.flash { animation: cue-flash .5s linear; }
+    .mobile-cue-label { min-height: 24px; font-weight: 700; }
+    .mobile-cue-meta { margin-top: 5px; color: var(--muted); font-size: .8rem; }
+    dialog { width: min(620px, calc(100% - 32px)); border: 1px solid var(--line); border-radius: 18px; padding: 0; background: var(--panel); color: var(--text); box-shadow: 0 30px 100px #000; }
+    dialog::backdrop { background: rgba(2,5,9,.78); backdrop-filter: blur(4px); }
+    .dialog-head { padding: 20px 22px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+    .dialog-head h2 { margin: 0; font-size: 1.1rem; }
+    .close { border: 0; background: transparent; color: var(--muted); font-size: 1.4rem; padding: 4px 8px; }
+    form { padding: 22px; }
+    fieldset { border: 1px solid var(--line); border-radius: 13px; padding: 17px; margin: 0 0 16px; }
+    legend { padding: 0 8px; font-weight: 700; }
+    .enable { float: right; display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: .86rem; }
+    .fields { display: grid; grid-template-columns: 1fr 130px; gap: 12px; clear: both; }
+    label > span { display: block; color: var(--muted); font-size: .78rem; margin-bottom: 6px; }
+    input[type="text"], input[type="password"], input[type="number"], select { width: 100%; color: var(--text); background: #0c1118; border: 1px solid var(--line); border-radius: 9px; padding: 10px 11px; }
+    input:focus, select:focus { outline: 2px solid rgba(77,214,232,.35); border-color: var(--cyan); }
+    .display-setting { margin-top: 3px; }
+    .display-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .toggle-row { display: flex; align-items: center; gap: 9px; color: var(--text); min-height: 42px; padding-top: 18px; }
+    .access-toggle { display: flex; align-items: center; gap: 9px; margin-bottom: 13px; }
+    .access-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .access-note { margin: 12px 0 0; color: var(--muted); font-size: .78rem; line-height: 1.45; }
+    .access-fields.disabled { opacity: .45; }
+    .form-error { min-height: 22px; color: var(--red); font-size: .84rem; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .empty { color: var(--muted); }
+    .widget-menu { position: fixed; z-index: 300; display: none; min-width: 190px; padding: 6px; border: 1px solid var(--line); border-radius: 11px; background: #111721; box-shadow: 0 18px 50px rgba(0,0,0,.52); }
+    .widget-menu.open { display: grid; }
+    .widget-menu button { border: 0; border-radius: 7px; padding: 9px 11px; color: var(--text); background: transparent; text-align: left; }
+    .widget-menu button:hover { background: var(--panel-2); }
+    .toast { position: fixed; left: 50%; bottom: 22px; z-index: 310; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; padding: 10px 15px; border: 1px solid var(--line); border-radius: 10px; background: #111721; box-shadow: var(--shadow); transition: opacity .2s, transform .2s; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .fullscreen-clock { font-size: min(27vw, 47vh); }
+    }
+    @media (max-width: 560px) {
+      .network-card { display: block; }
+      .network-card .card-head { padding: 10px 14px 4px; }
+      .network-card .network-metrics { grid-template-columns: 90px minmax(0, 1fr); border-left: 0; }
+      .network-card .metric { padding: 8px 12px; border-bottom: 0; }
+      .network-card .metric-row { flex-wrap: wrap; gap: 5px; }
+      .shell { padding: 15px; }
+      .subtitle { display: none; }
+      .timer-stage { grid-template-columns: 55px 1fr; min-height: 280px; }
+      .lights { gap: 14px; }
+      .lamp { width: 25px; height: 25px; }
+      .time-wrap { padding: 24px 12px; }
+      .clock { font-size: clamp(4.2rem, 24vw, 7rem); }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .fields { grid-template-columns: 1fr; }
+      .display-fields { grid-template-columns: 1fr; }
+      .access-fields { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="pywebview-drag-region">
+      <div class="identity">
+        <div class="mark">D’S</div>
+        <div><h1>D’San Master View</h1><div class="subtitle">Limitimer and PerfectCue network display</div></div>
+      </div>
+      <div class="header-actions">
+        <button class="settings-button" id="open-fullscreen" type="button">Full screen</button>
+        <button class="settings-button" id="open-mobile" type="button">Mobile view</button>
+        <button class="settings-button" id="open-settings" type="button">Settings</button>
+        <button class="settings-button" id="open-message" type="button">Presenter message</button>
+        <button class="settings-button" id="update-button" type="button">Check for updates</button>
+      </div>
+    </header>
+
+      <section class="grid" aria-label="Live device status">
+      <article class="card network-card">
+        <div class="card-head"><div class="card-title">Network access</div></div>
+        <div class="metrics network-metrics">
+          <div class="metric">
+            <div class="metric-label">Port</div>
+            <div class="metric-row">
+              <div class="metric-value" id="server-port">—</div>
+              <button class="metric-copy" type="button" id="copy-server-port">Copy</button>
+            </div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Machine IPs</div>
+            <div class="metric-row">
+              <div class="metric-value network-links" id="server-ips">—</div>
+              <button class="metric-copy" type="button" id="copy-server-ips">Copy</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div class="card-title">Limitimer</div>
+          <div class="status" id="limitimer-status"><span class="status-dot"></span><span>Waiting</span></div>
+        </div>
+        <div class="timer-stage">
+          <div class="lights" aria-label="Signal light">
+            <span class="lamp green" id="lamp-green"></span>
+            <span class="lamp yellow" id="lamp-yellow"></span>
+            <span class="lamp red" id="lamp-red"></span>
+          </div>
+          <div class="time-wrap">
+            <div class="program-chip" id="selected-program">Program —</div>
+            <div class="clock" id="clock">--:--</div>
+            <div class="timer-state" id="timer-state"><span class="run-icon"></span><span>Waiting for timer data</span></div>
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><div class="metric-label">Total</div><div class="metric-value" id="metric-total">—</div></div>
+          <div class="metric"><div class="metric-label">Elapsed</div><div class="metric-value" id="metric-elapsed">—</div></div>
+          <div class="metric"><div class="metric-label">Sum-up</div><div class="metric-value" id="metric-sumup">—</div></div>
+          <div class="metric"><div class="metric-label">Packets</div><div class="metric-value" id="metric-packets">0</div></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div class="card-title">PerfectCue</div>
+          <div class="status" id="perfectcue-status"><span class="status-dot"></span><span>Disabled</span></div>
+        </div>
+        <div class="cue-body">
+          <div class="cue-display" id="cue-display">
+            <div><div class="cue-symbol" id="cue-symbol">·</div><div class="cue-label" id="cue-label">Waiting for cue</div></div>
+          </div>
+        </div>
+        <div class="cue-meta"><span id="cue-code">No events</span><span id="cue-count">0 cues</span></div>
+      </article>
+    </section>
+
+  </main>
+
+  <section class="mobile-view" id="mobile-view" aria-label="Mobile dashboard" aria-hidden="true">
+    <div class="mobile-shell">
+      <header class="mobile-head">
+        <div class="identity"><div class="mark">D’S</div><div><h2>D’San Master View</h2><div class="subtitle">Mobile dashboard</div></div></div>
+        <div class="mobile-actions">
+          <button class="secondary" id="mobile-settings" type="button">Settings</button>
+          <button class="secondary" id="close-mobile" type="button" aria-label="Close mobile view">Done</button>
+        </div>
+      </header>
+      <div class="mobile-stack">
+        <article class="mobile-card">
+          <div class="mobile-card-head"><span>Limitimer</span><span class="status" id="mobile-limitimer-status"><span class="status-dot"></span><span>Waiting</span></span></div>
+          <div class="mobile-timer">
+            <div class="mobile-lights" aria-label="Signal light">
+              <span class="lamp green" id="mobile-lamp-green"></span>
+              <span class="lamp yellow" id="mobile-lamp-yellow"></span>
+              <span class="lamp red" id="mobile-lamp-red"></span>
+            </div>
+            <div class="mobile-program" id="mobile-program">Program —</div>
+            <div class="mobile-clock" id="mobile-clock">--:--</div>
+            <div class="timer-state" id="mobile-timer-state"><span class="run-icon"></span><span>Waiting for timer data</span></div>
+          </div>
+          <div class="mobile-metrics">
+            <div class="metric"><div class="metric-label">Total</div><div class="metric-value" id="mobile-total">—</div></div>
+            <div class="metric"><div class="metric-label">Elapsed</div><div class="metric-value" id="mobile-elapsed">—</div></div>
+            <div class="metric"><div class="metric-label">Sum-up</div><div class="metric-value" id="mobile-sumup">—</div></div>
+            <div class="metric"><div class="metric-label">Packets</div><div class="metric-value" id="mobile-packets">0</div></div>
+          </div>
+        </article>
+        <article class="mobile-card">
+          <div class="mobile-card-head"><span>PerfectCue</span><span class="status" id="mobile-perfectcue-status"><span class="status-dot"></span><span>Waiting</span></span></div>
+          <div class="mobile-cues">
+            <div class="mobile-directions" aria-live="assertive">
+              <div class="mobile-direction previous" id="mobile-previous" aria-label="Previous"><svg viewBox="0 0 32 24" aria-hidden="true"><path d="M29 8H14V2L3 12l11 10v-6h15z"/></svg></div>
+              <div class="mobile-direction next" id="mobile-next" aria-label="Next"><svg viewBox="0 0 32 24" aria-hidden="true"><path d="M3 8h15V2l11 10-11 10v-6H3z"/></svg></div>
+            </div>
+            <div class="mobile-cue-label" id="mobile-cue-label">Waiting for cue</div>
+            <div class="mobile-cue-meta"><span id="mobile-cue-code">No events</span> · <span id="mobile-cue-count">0 cues</span></div>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="fullscreen-view" id="fullscreen-view" aria-label="Full-screen timer and cue">
+    <button class="secondary browser-fullscreen-button" id="browser-enter-fullscreen" type="button" hidden>Enter full screen</button>
+    <div class="fullscreen-stage">
+      <div class="fullscreen-clock" id="fullscreen-clock">--:--</div>
+      <div class="fullscreen-directions" aria-live="assertive">
+        <div class="fullscreen-direction previous" id="fullscreen-previous" aria-label="Previous"><svg viewBox="0 0 120 64" preserveAspectRatio="none" aria-hidden="true"><path transform="translate(120 0) scale(-1 1)" d="M7 20H79V6Q79 2 83 5L116 29Q120 32 116 35L83 59Q79 62 79 58V44H7Q3 44 3 40V24Q3 20 7 20Z"/></svg></div>
+        <div class="fullscreen-direction next" id="fullscreen-next" aria-label="Next"><svg viewBox="0 0 120 64" preserveAspectRatio="none" aria-hidden="true"><path d="M7 20H79V6Q79 2 83 5L116 29Q120 32 116 35L83 59Q79 62 79 58V44H7Q3 44 3 40V24Q3 20 7 20Z"/></svg></div>
+      </div>
+      <div class="presenter-message" id="presenter-message" role="status" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <dialog id="message-dialog" aria-labelledby="message-title">
+    <div class="dialog-head"><h2 id="message-title">Presenter message</h2><button class="close" id="close-message" type="button" aria-label="Close">×</button></div>
+    <form id="message-form">
+      <label><span>Message (up to 160 characters)</span><textarea id="message-text" rows="3" maxlength="160" placeholder="Please wrap up"></textarea></label>
+      <label><span>Message color</span><input id="message-color" type="color" value="#ffffff"></label>
+      <label><input id="message-flash" type="checkbox"> Flash message for attention</label>
+      <p>Shown on all full-screen and /full displays until cleared. Messages clear when the host app restarts.</p>
+      <div id="message-feedback" role="status"></div>
+      <div class="dialog-actions"><button class="secondary" id="clear-message" type="button">Clear message</button><button class="primary" type="submit">Show message</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="settings-dialog">
+    <div class="dialog-head"><h2>Settings</h2><button class="close" id="close-settings" type="button" aria-label="Close">×</button></div>
+    <form id="settings-form">
+      <fieldset>
+        <legend>Find devices on the network</legend>
+        <div class="display-fields">
+          <label><span>Subnet to scan</span><input id="scan-subnet" type="text" placeholder="10.21.0.0/24"></label>
+          <label><span>TCP ports (comma-separated)</span><input id="scan-ports" type="text" value="6120" placeholder="6120, 4001"></label>
+        </div>
+        <p class="access-note">Scan up to 256 addresses and four ports. The scan listens for valid Limitimer status frames. PerfectCue may remain unknown until a button is pressed; cue bytes are labeled as a possible match. Choose a device, then Save and connect.</p>
+        <p class="access-note">Some serial adapters allow only one connection; scanning may briefly occupy a connection. Already-connected devices in this app are listed without probing them.</p>
+        <button class="secondary" id="scan-devices" type="button">Scan for devices</button>
+        <div id="scan-status" role="status" aria-live="polite"></div>
+        <div id="scan-results"></div>
+      </fieldset>
+      <fieldset>
+        <legend>Limitimer</legend>
+        <label class="enable"><input type="checkbox" id="limitimer-enabled"> Enabled</label>
+        <div class="fields">
+          <label><span>IP address or hostname</span><input id="limitimer-host" type="text" autocomplete="off" placeholder="10.21.0.119"></label>
+          <label><span>TCP port</span><input id="limitimer-port" type="number" min="1" max="65535" inputmode="numeric"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>PerfectCue</legend>
+        <label class="enable"><input type="checkbox" id="perfectcue-enabled"> Enabled</label>
+        <div class="fields">
+          <label><span>IP address or hostname</span><input id="perfectcue-host" type="text" autocomplete="off" placeholder="10.21.0.120"></label>
+          <label><span>TCP port</span><input id="perfectcue-port" type="number" min="1" max="65535" inputmode="numeric"></label>
+        </div>
+      </fieldset>
+      <fieldset class="display-setting">
+        <legend>Display</legend>
+        <div class="display-fields">
+          <label><span>At zero</span>
+            <select id="overtime-mode">
+              <option value="continue">Count past zero</option>
+              <option value="stop">Stop at 00:00</option>
+            </select>
+          </label>
+          <label><span>Clock font</span>
+            <select id="clock-font">
+              <option value="mono">Digital mono</option>
+              <option value="sans">Clean sans</option>
+              <option value="condensed">Condensed</option>
+              <option value="serif">Classic serif</option>
+              <option value="helvetica">Helvetica</option>
+              <option value="verdana">Verdana</option>
+              <option value="georgia">Georgia</option>
+              <option value="comic_sans">Comic Sans MS</option>
+              <option value="trebuchet">Trebuchet MS</option>
+              <option value="arial_black">Arial Black</option>
+              <option value="impact">Impact</option>
+            </select>
+          </label>
+          <label class="toggle-row"><input type="checkbox" id="show-lights"> Show Limitimer indicator lights</label>
+          <label><span>Overall clock color</span><input id="clock-color" type="color" value="#f5f8fb"></label>
+          <label class="toggle-row"><input type="checkbox" id="fixed-color" checked> Always use overall color (override status colors)</label>
+          <label><span>Green / normal status</span><input id="green-color" type="color" value="#35d07f"></label>
+          <label><span>Yellow / warning status</span><input id="yellow-color" type="color" value="#ffd166"></label>
+          <label><span>Red / stop status</span><input id="red-color" type="color" value="#ff5263"></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Network access</legend>
+        <p class="access-note">Access passwords are managed by the admin on the Tech Hub master page.</p>
+        <div hidden>
+        <label class="access-toggle"><input type="checkbox" id="require-auth"> Require authentication for remote access</label>
+        <div class="access-fields" id="access-fields">
+          <label><span>Username</span><input id="auth-username" type="text" autocomplete="username" value="admin"></label>
+          <label><span>Password</span><input id="auth-password" type="password" autocomplete="new-password" minlength="8"></label>
+        </div>
+        <p class="access-note">Remote browsers will be prompted to sign in. Access from this host computer remains available without a prompt.</p>
+        </div>
+      </fieldset>
+      <div class="form-error" id="form-error" role="alert"></div>
+      <div class="dialog-actions"><button class="secondary" id="cancel-settings" type="button">Cancel</button><button class="primary" type="submit">Save and connect</button></div>
+    </form>
+  </dialog>
+
+  <div class="widget-menu" id="widget-menu" role="menu">
+    <button id="check-updates" type="button" role="menuitem">Check for updates</button>
+    <button id="toggle-on-top" type="button" role="menuitem">Keep on top: On</button>
+    <button id="close-widget" type="button" role="menuitem">Close widget</button>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <dialog id="update-dialog" aria-labelledby="update-title">
+    <div class="dialog-head"><h2 id="update-title">Check for updates</h2></div>
+    <p id="update-message" role="status"></p>
+    <div class="dialog-actions">
+      <button class="secondary" id="update-close" type="button">Close</button>
+      <button class="primary" id="update-install" type="button" hidden>Install update</button>
+    </div>
+  </dialog>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let latestState = null;
+    let cueTimer = null;
+    let cueFlashTimer = null;
+    let lastCueDirection = null;
+    let cueVisibleUntil = 0;
+    let desktopMode = false;
+    let toastTimer = null;
+    const arrows = {
+      next: '<svg viewBox="0 0 32 24" aria-hidden="true"><path d="M3 8h15V2l11 10-11 10v-6H3z"/></svg>',
+      previous: '<svg viewBox="0 0 32 24" aria-hidden="true"><path d="M29 8H14V2L3 12l11 10v-6h15z"/></svg>'
+    };
+    const fontStacks = {
+      mono: 'Consolas, "SFMono-Regular", Menlo, monospace',
+      sans: 'Arial, "Segoe UI", sans-serif',
+      condensed: '"Arial Narrow", "Roboto Condensed", "Segoe UI", sans-serif',
+      serif: 'Georgia, "Times New Roman", serif',
+      helvetica: 'Helvetica, "Helvetica Neue", Arial, sans-serif',
+      verdana: 'Verdana, Geneva, sans-serif',
+      georgia: 'Georgia, "Times New Roman", serif',
+      comic_sans: '"Comic Sans MS", "Comic Sans", cursive',
+      trebuchet: '"Trebuchet MS", Arial, sans-serif',
+      arial_black: '"Arial Black", Arial, sans-serif',
+      impact: 'Impact, Haettenschweiler, "Arial Narrow", sans-serif'
+    };
+
+    function setStatus(id, value, error) {
+      const node = $(id);
+      node.dataset.state = value;
+      node.querySelector('span:last-child').textContent = error && value === 'disconnected' ? 'Disconnected' : value;
+      node.title = error || '';
+    }
+
+    function formatSeconds(value) {
+      const sign = value < 0 ? '−' : '';
+      value = Math.abs(Math.trunc(value));
+      const hours = Math.floor(value / 3600);
+      const minutes = Math.floor((value % 3600) / 60);
+      const seconds = value % 60;
+      return hours ? `${sign}${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}` : `${sign}${minutes}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function renderClock(node, text) {
+      if (node.dataset.time === text) return;
+      node.dataset.time = text;
+      node.setAttribute('aria-label', text);
+      const split = text.lastIndexOf(':');
+      const parts = [text.slice(0, split), text.slice(split + 1)];
+      const left = document.createElement('span'); left.className = 'clock-left';
+      const right = document.createElement('span'); right.className = 'clock-right';
+      const colon = document.createElement('span'); colon.className = 'clock-colon'; colon.textContent = ':';
+      [left, right].forEach((side, index) => {
+        for (const value of parts[index]) {
+          const digit = document.createElement('span'); digit.className = value === ':' ? 'clock-colon' : 'clock-digit'; digit.textContent = value; side.appendChild(digit);
+        }
+      });
+      [left, colon, right].forEach(part => part.setAttribute('aria-hidden', 'true'));
+      node.replaceChildren(left, colon, right);
+    }
+    ['clock', 'fullscreen-clock', 'mobile-clock'].forEach(id => renderClock($(id), '--:--'));
+
+    function viewerTime(timer) {
+      const raw = timer.remaining_seconds;
+      const value = latestState?.config?.display?.overtime === 'stop' ? Math.max(0, raw) : raw;
+      return formatSeconds(value);
+    }
+
+    function applyDisplaySettings(config) {
+      const display = config?.display || {};
+      document.documentElement.style.setProperty('--clock-font', fontStacks[display.font] || fontStacks.mono);
+      document.body.classList.toggle('hide-lights', display.show_lights === false);
+      const signal = latestState?.limitimer?.data?.active?.signal;
+      const color = display.fixed_color === false && ['green', 'yellow', 'red'].includes(signal) ? display[`${signal}_color`] : display.clock_color;
+      document.documentElement.style.setProperty('--timer-color', color || '#f5f8fb');
+      ['green', 'yellow', 'red'].forEach(name => {
+        const value = display[`${name}_color`] || {green:'#35d07f',yellow:'#ffd166',red:'#ff5263'}[name];
+        for (const prefix of ['lamp-', 'mobile-lamp-']) {
+          const lamp = $(prefix + name);
+          lamp.style.background = signal === name ? value : '';
+          lamp.style.boxShadow = signal === name ? `0 0 24px ${value}aa` : '';
+        }
+      });
+    }
+
+    function fitPresenterDisplay() {
+      const stage = document.querySelector('.fullscreen-stage');
+      const clock = $('fullscreen-clock');
+      clock.style.fontSize = '';
+      const rows = getComputedStyle(stage).gridTemplateRows.split(' ').map(parseFloat);
+      const width = stage.clientWidth - parseFloat(getComputedStyle(stage).paddingLeft) - parseFloat(getComputedStyle(stage).paddingRight);
+      const left = clock.querySelector('.clock-left');
+      const right = clock.querySelector('.clock-right');
+      const occupiedWidth = node => node ? Array.from(node.children).reduce((sum, child) => sum + child.getBoundingClientRect().width, 0) : 0;
+      const neededWidth = 2 * Math.max(occupiedWidth(left), occupiedWidth(right)) + (clock.querySelector('.clock-colon')?.getBoundingClientRect().width || 0);
+      if (neededWidth > width && width > 0) clock.style.fontSize = `${parseFloat(getComputedStyle(clock).fontSize) * width / neededWidth * .98}px`;
+      const message = $('presenter-message');
+      message.style.fontSize = '';
+      if (rows[2] > 0 && message.scrollHeight > rows[2]) message.style.fontSize = `${parseFloat(getComputedStyle(message).fontSize) * rows[2] / message.scrollHeight * .95}px`;
+    }
+    window.addEventListener('resize', fitPresenterDisplay);
+    document.addEventListener('fullscreenchange', fitPresenterDisplay);
+    document.fonts?.ready.then(fitPresenterDisplay);
+
+    function renderMessage(message = {}) {
+      const target = $('presenter-message');
+      if (target.textContent !== (message.text || '')) target.textContent = message.text || '';
+      target.style.color = message.color || '#ffffff';
+      target.classList.toggle('flashing', !!message.flash);
+      document.body.classList.toggle('has-message', !!message.text);
+      fitPresenterDisplay();
+    }
+
+    function renderLimitimer(device) {
+      setStatus('limitimer-status', device.status, device.error);
+      setStatus('mobile-limitimer-status', device.status, device.error);
+      $('metric-packets').textContent = device.packet_count.toLocaleString();
+      $('mobile-packets').textContent = device.packet_count.toLocaleString();
+      if (!device.data) return;
+      const data = device.data;
+      const active = data.active;
+      $('selected-program').textContent = `Program ${data.selected_program}`;
+      $('mobile-program').textContent = `Program ${data.selected_program}`;
+      const displayedTime = viewerTime(active);
+      ['clock', 'fullscreen-clock', 'mobile-clock'].forEach(id => renderClock($(id), displayedTime));
+      $('metric-total').textContent = active.total;
+      $('metric-elapsed').textContent = active.elapsed;
+      $('metric-sumup').textContent = active.sumup;
+      $('mobile-total').textContent = active.total;
+      $('mobile-elapsed').textContent = active.elapsed;
+      $('mobile-sumup').textContent = active.sumup;
+      $('timer-state').className = `timer-state ${active.running ? 'running' : ''}`;
+      $('timer-state').querySelector('span:last-child').textContent = active.running ? 'Running' : 'Stopped';
+      $('mobile-timer-state').className = `timer-state ${active.running ? 'running' : ''}`;
+      $('mobile-timer-state').querySelector('span:last-child').textContent = active.running ? 'Running' : 'Stopped';
+      ['green', 'yellow', 'red'].forEach(color => {
+        $('lamp-' + color).classList.toggle('on', active.signal === color);
+        $('mobile-lamp-' + color).classList.toggle('on', active.signal === color);
+      });
+    }
+
+    function renderCue(device) {
+      setStatus('perfectcue-status', device.status, device.error);
+      setStatus('mobile-perfectcue-status', device.status, device.error);
+      $('cue-count').textContent = `${device.event_count} cue${device.event_count === 1 ? '' : 's'}`;
+      $('mobile-cue-count').textContent = `${device.event_count} cue${device.event_count === 1 ? '' : 's'}`;
+      const event = device.last_event;
+      if (!event) return;
+      const signature = `${event.at}-${event.code}`;
+      if ($('cue-display').dataset.signature === signature) return;
+      $('cue-display').dataset.signature = signature;
+      const symbols = {blank_off: '⊘', blank_on: '⊘'};
+      const now = Date.now();
+      const directional = event.kind === 'next' || event.kind === 'previous';
+      const repeatedDirection = directional && event.kind === lastCueDirection && now < cueVisibleUntil;
+      if (directional) lastCueDirection = event.kind;
+      else lastCueDirection = null;
+      if (arrows[event.kind]) $('cue-symbol').innerHTML = arrows[event.kind];
+      else $('cue-symbol').textContent = symbols[event.kind] || '·';
+      $('cue-label').textContent = `${event.label} · ${event.detail}`;
+      $('cue-code').textContent = event.code;
+      $('mobile-cue-label').textContent = `${event.label} · ${event.detail}`;
+      $('mobile-cue-code').textContent = event.code;
+      const flashClass = repeatedDirection ? ' flash' : '';
+      $('cue-display').className = `cue-display active ${event.kind}${flashClass}`;
+      const directionArrows = [$('fullscreen-previous'), $('fullscreen-next'), $('mobile-previous'), $('mobile-next')];
+      directionArrows.forEach(arrow => arrow.classList.remove('active', 'flash'));
+      if (directional) {
+        const activeArrows = event.kind === 'next'
+          ? [$('fullscreen-next'), $('mobile-next')]
+          : [$('fullscreen-previous'), $('mobile-previous')];
+        activeArrows.forEach(arrow => arrow.classList.add('active'));
+        if (repeatedDirection) activeArrows.forEach(arrow => arrow.classList.add('flash'));
+      }
+      cueVisibleUntil = now + 2000;
+      clearTimeout(cueFlashTimer);
+      if (repeatedDirection) cueFlashTimer = setTimeout(() => {
+        $('cue-display').classList.remove('flash');
+        directionArrows.forEach(arrow => arrow.classList.remove('flash'));
+      }, 500);
+      clearTimeout(cueTimer);
+      cueTimer = setTimeout(() => {
+        $('cue-display').classList.remove('active');
+        directionArrows.forEach(arrow => arrow.classList.remove('active'));
+      }, 2000);
+    }
+
+    function renderNetworkInfo(network) {
+      if (!network?.server) return;
+      $('server-port').textContent = String(network.server.port);
+      const ips = network.server.ip_addresses || [];
+      const urls = ips.map(ip => `http://${ip}:${network.server.port}`);
+      const container = $('server-ips');
+      container.textContent = '';
+      if (!urls.length) {
+        container.textContent = 'N/A';
+        return;
+      }
+      for (const url of urls) {
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener';
+        anchor.textContent = url;
+        container.appendChild(anchor);
+      }
+    }
+
+    function fillSettings(config) {
+      if (!$('scan-subnet').value) {
+        const host = latestState?.network?.server?.ip_addresses?.find(ip => ip !== '127.0.0.1');
+        if (host) $('scan-subnet').value = host.split('.').slice(0, 3).join('.') + '.0/24';
+      }
+      if (!$('scan-ports').dataset.edited) $('scan-ports').value = [...new Set([config.limitimer.port, config.perfectcue.port])].join(', ');
+      ['limitimer', 'perfectcue'].forEach(name => {
+        $(`${name}-host`).value = config[name].host;
+        $(`${name}-port`).value = config[name].port;
+        $(`${name}-enabled`).checked = config[name].enabled;
+      });
+      $('overtime-mode').value = config.display?.overtime || 'continue';
+      $('clock-font').value = config.display?.font || 'mono';
+      $('show-lights').checked = config.display?.show_lights !== false;
+      $('fixed-color').checked = config.display?.fixed_color !== false;
+      for (const [name, fallback] of Object.entries({clock:'#f5f8fb',green:'#35d07f',yellow:'#ffd166',red:'#ff5263'})) $(`${name}-color`).value = config.display?.[`${name}_color`] || fallback;
+      const access = config.access || {};
+      $('require-auth').checked = access.require_auth === true;
+      $('auth-username').value = access.username || 'admin';
+      $('auth-password').value = '';
+      $('auth-password').placeholder = access.password_set ? 'Leave blank to keep current password' : 'At least 8 characters';
+      toggleAuthFields();
+    }
+
+    function toggleAuthFields() {
+      const enabled = $('require-auth').checked;
+      $('access-fields').classList.toggle('disabled', !enabled);
+      $('auth-username').disabled = !enabled;
+      $('auth-password').disabled = !enabled;
+      $('auth-username').required = enabled;
+    }
+
+    async function poll() {
+      try {
+        const response = await fetch('/api/state', {cache: 'no-store'});
+        latestState = await response.json();
+        applyDisplaySettings(latestState.config);
+        renderNetworkInfo(latestState.network);
+        renderLimitimer(latestState.limitimer);
+        renderCue(latestState.perfectcue);
+        renderMessage(latestState.message);
+      } catch (_) {
+        setStatus('limitimer-status', 'disconnected', 'Local monitor is unavailable');
+        setStatus('perfectcue-status', 'disconnected', 'Local monitor is unavailable');
+      }
+    }
+
+    async function copyToClipboard(value) {
+      try {
+        await navigator.clipboard.writeText(value);
+        showToast('Copied to clipboard');
+      } catch (_) {
+        showToast('Clipboard not available');
+      }
+    }
+
+    $('open-settings').addEventListener('click', () => { if (latestState) fillSettings(latestState.config); $('form-error').textContent = ''; $('settings-dialog').showModal(); });
+    $('open-message').addEventListener('click', () => {
+      const message = latestState?.message || {};
+      $('message-text').value = message.text || '';
+      $('message-color').value = message.color || '#ffffff';
+      $('message-flash').checked = !!message.flash;
+      $('message-feedback').textContent = '';
+      $('message-dialog').showModal();
+    });
+    $('close-message').addEventListener('click', () => $('message-dialog').close());
+    async function sendPresenterMessage(clear = false) {
+      const payload = {text: clear ? '' : $('message-text').value, color: $('message-color').value, flash: !clear && $('message-flash').checked};
+      try {
+        const response = await fetch('/api/message', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Could not send message');
+        $('message-feedback').textContent = clear ? 'Message cleared from all displays.' : 'Message is live on all full-screen displays.';
+        if (clear) $('message-text').value = '';
+        await poll();
+      } catch (error) { $('message-feedback').textContent = error.message; }
+    }
+    $('message-form').addEventListener('submit', event => { event.preventDefault(); sendPresenterMessage(); });
+    $('clear-message').addEventListener('click', () => sendPresenterMessage(true));
+    $('open-fullscreen').addEventListener('click', async () => {
+      if (window.pywebview?.api) {
+        try { showToast((await window.pywebview.api.open_browser_fullscreen()).message); }
+        catch (_) { showToast('Could not open your browser. Please try again.'); }
+        return;
+      }
+      try { await $('fullscreen-view').requestFullscreen(); }
+      catch (_) { showToast('Full screen is unavailable in this browser.'); }
+    });
+    $('browser-enter-fullscreen').addEventListener('click', async () => {
+      try { await $('fullscreen-view').requestFullscreen(); }
+      catch (_) { showToast('Use your browser’s full-screen menu to expand this display.'); }
+    });
+    const tvDisplay = /^\/full\/?$/.test(location.pathname);
+    if (tvDisplay || new URLSearchParams(location.search).get('display') === 'fullscreen') {
+      document.body.classList.add('browser-display');
+      $('browser-enter-fullscreen').hidden = tvDisplay;
+      // Browsers may require a fresh user gesture in the newly opened window.
+      if (!tvDisplay) $('fullscreen-view').requestFullscreen?.().catch(() => {});
+    }
+    $('open-mobile').addEventListener('click', () => {
+      document.body.classList.add('mobile-open');
+      $('mobile-view').setAttribute('aria-hidden', 'false');
+      $('close-mobile').focus();
+    });
+    $('close-mobile').addEventListener('click', () => {
+      document.body.classList.remove('mobile-open');
+      $('mobile-view').setAttribute('aria-hidden', 'true');
+      $('open-mobile').focus();
+    });
+    $('mobile-settings').addEventListener('click', () => $('open-settings').click());
+    $('copy-server-port').addEventListener('click', () => copyToClipboard($('server-port').textContent || ''));
+    $('copy-server-ips').addEventListener('click', () => {
+      const links = Array.from($('server-ips').querySelectorAll('a')).map(link => link.href);
+      copyToClipboard(links.length ? links.join('\n') : ($('server-ips').textContent || ''));
+    });
+    ['close-settings', 'cancel-settings'].forEach(id => $(id).addEventListener('click', () => $('settings-dialog').close()));
+    $('require-auth').addEventListener('change', toggleAuthFields);
+    $('scan-ports').addEventListener('input', () => $('scan-ports').dataset.edited = 'true');
+    $('scan-devices').addEventListener('click', async () => {
+      const button = $('scan-devices');
+      button.disabled = true;
+      $('scan-status').textContent = 'Scanning and listening for device traffic… This may take up to a minute. You can keep using the display.';
+      $('scan-results').replaceChildren();
+      try {
+        const ports = $('scan-ports').value.split(',').map(value => Number(value.trim()));
+        const response = await fetch('/api/discover', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({subnet:$('scan-subnet').value.trim(), ports})});
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Scan failed.');
+        $('scan-status').textContent = result.devices.length ? `${result.devices.length} reachable endpoint(s). Select the device for each role; nothing connects until you save.` : 'No devices found on these ports. Check the subnet and adapter ports. Busy adapters may not respond; you can still enter their IP manually.';
+        for (const device of result.devices) {
+          const row = document.createElement('div'); row.className = 'scan-result';
+          const label = document.createElement('div'); label.textContent = `${device.host}:${device.port} — ${device.connected ? 'Already connected in this app' : device.identity || 'Unknown'}`;
+          const actions = document.createElement('div'); actions.className = 'scan-actions';
+          for (const [role, title] of [['limitimer','Limitimer'], ['perfectcue','PerfectCue']]) {
+            const select = document.createElement('button'); select.type = 'button'; select.className = 'secondary'; select.textContent = `Use for ${title}`;
+            select.addEventListener('click', () => {
+              $(`${role}-host`).value = device.host;
+              $(`${role}-port`).value = device.port;
+              $(`${role}-enabled`).checked = true;
+              $('scan-status').textContent = `${title} selected: ${device.host}:${device.port}. Review both device fields, then Save and connect.`;
+            });
+            actions.appendChild(select);
+          }
+          row.append(label, actions); $('scan-results').appendChild(row);
+        }
+      } catch (error) { $('scan-status').textContent = error.message; }
+      finally { button.disabled = false; }
+    });
+    $('settings-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const payload = {};
+      for (const name of ['limitimer', 'perfectcue']) payload[name] = {host: $(`${name}-host`).value.trim(), port: Number($(`${name}-port`).value), enabled: $(`${name}-enabled`).checked};
+      payload.display = {overtime: $('overtime-mode').value, font: $('clock-font').value, show_lights: $('show-lights').checked};
+      payload.display.fixed_color = $('fixed-color').checked;
+      for (const name of ['clock', 'green', 'yellow', 'red']) payload.display[`${name}_color`] = $(`${name}-color`).value;
+      payload.access = {require_auth: $('require-auth').checked, username: $('auth-username').value.trim(), password: $('auth-password').value};
+      try {
+        const response = await fetch('/api/config', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Could not save settings');
+        $('settings-dialog').close();
+        await poll();
+      } catch (error) { $('form-error').textContent = error.message; }
+    });
+
+    function showToast(message) {
+      $('toast').textContent = message;
+      $('toast').classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => $('toast').classList.remove('show'), 3500);
+    }
+
+    window.addEventListener('pywebviewready', async () => {
+      desktopMode = true;
+      try {
+        const state = await window.pywebview.api.app_state();
+        $('toggle-on-top').textContent = `Keep on top: ${state.on_top ? 'On' : 'Off'}`;
+        $('close-widget').textContent = state.is_widget ? 'Close widget' : 'Quit app';
+      } catch (_) {}
+    });
+    window.addEventListener('contextmenu', event => {
+      if (!desktopMode) return;
+      event.preventDefault();
+      const menu = $('widget-menu');
+      menu.style.left = `${Math.min(event.clientX, innerWidth - 205)}px`;
+      menu.style.top = `${Math.min(event.clientY, innerHeight - 130)}px`;
+      menu.classList.add('open');
+    });
+    window.addEventListener('click', () => $('widget-menu').classList.remove('open'));
+    async function checkForUpdates(event) {
+      event.stopPropagation();
+      $('widget-menu').classList.remove('open');
+      $('update-message').textContent = 'Checking for updates…';
+      $('update-install').hidden = true;
+      if (!$('update-dialog').open) $('update-dialog').showModal();
+      if (!window.pywebview?.api) {
+        $('update-message').textContent = 'This service is bundled with Tech Hub. Use Downloads & Updates in the Tech Hub menu bar to download a complete app update.';
+        return;
+      }
+      $('update-button').disabled = true;
+      $('check-updates').disabled = true;
+      try {
+        const result = await window.pywebview.api.check_for_updates();
+        $('update-message').textContent = result.message;
+        $('update-install').hidden = !result.update_available;
+      } catch (_) { $('update-message').textContent = 'Could not check for updates. Please try again.'; }
+      finally {
+        $('update-button').disabled = false;
+        $('check-updates').disabled = false;
+      }
+    }
+    $('update-close').addEventListener('click', () => $('update-dialog').close());
+    $('update-install').addEventListener('click', async () => {
+      $('update-install').disabled = true;
+      $('update-button').disabled = true;
+      $('check-updates').disabled = true;
+      $('update-message').textContent = 'Downloading update…';
+      try { $('update-message').textContent = (await window.pywebview.api.install_update()).message; }
+      catch (_) { $('update-message').textContent = 'Could not download the update. Please try again.'; }
+      finally {
+        $('update-install').disabled = false;
+        $('update-install').hidden = true;
+        $('update-button').disabled = false;
+        $('check-updates').disabled = false;
+      }
+    });
+    $('check-updates').addEventListener('click', checkForUpdates);
+    $('update-button').addEventListener('click', checkForUpdates);
+    $('toggle-on-top').addEventListener('click', async event => {
+      event.stopPropagation();
+      const result = await window.pywebview.api.toggle_on_top();
+      $('toggle-on-top').textContent = `Keep on top: ${result.on_top ? 'On' : 'Off'}`;
+      $('widget-menu').classList.remove('open');
+    });
+    $('close-widget').addEventListener('click', () => window.pywebview.api.close_widget());
+
+    poll();
+    setInterval(poll, 350);
+  </script>
+</body>
+</html>

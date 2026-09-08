@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#071015">
+  <title>Streamline Power Monitor</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#dashboard">Skip to devices</a>
+
+  <header class="topbar">
+    <div class="brand" aria-label="Streamline Power Monitor">
+      <img class="brand-logo" src="/streamline-logo.svg" alt="Streamline Technical Group">
+      <span>
+        <strong>Power Monitor</strong>
+        <small>Live distribution overview</small>
+      </span>
+    </div>
+    <div class="topbar-actions">
+      <span class="server-indicator" id="server-indicator"><i></i><span>Connecting</span></span>
+      <button class="button button-quiet alerts-button" id="alerts-button" type="button">Alerts <span id="alerts-count" hidden>0</span></button>
+      <button class="button button-quiet" id="settings-button" type="button">Settings</button>
+      <button class="button button-secondary" id="services-button" type="button">Services</button>
+      <button class="button button-primary" id="manage-button" type="button">Manage devices</button>
+    </div>
+  </header>
+
+  <main id="dashboard">
+    <section class="overview" aria-labelledby="overview-title">
+      <div class="overview-copy">
+        <p class="eyebrow">Streamline power operations</p>
+        <h1 id="overview-title">Streamline every circuit.</h1>
+        <p id="cycle-label">Waiting for the local monitor…</p>
+      </div>
+      <div class="summary-strip" aria-label="Device status summary">
+        <div class="summary-cell summary-total"><span>Devices</span><strong id="count-total">0</strong></div>
+        <div class="summary-cell summary-online"><span>Online</span><strong id="count-online">0</strong></div>
+        <div class="summary-cell summary-warning"><span>Warnings</span><strong id="count-warning">0</strong></div>
+        <div class="summary-cell summary-offline"><span>Offline</span><strong id="count-offline">0</strong></div>
+      </div>
+    </section>
+
+    <section class="update-banner" id="update-banner" aria-labelledby="update-title" hidden>
+      <div>
+        <p class="eyebrow">Software update</p>
+        <h2 id="update-title">A new Power Monitor version is available</h2>
+        <p id="update-summary"></p>
+      </div>
+      <div class="update-actions">
+        <a class="button button-quiet" id="update-release-link" href="https://github.com/horner516/STG-Power-Meter/releases" target="_blank" rel="noopener">View release</a>
+        <button class="button button-primary" id="install-update-button" type="button">Install update</button>
+      </div>
+    </section>
+
+    <section class="services-panel" id="services-panel" aria-labelledby="services-title" hidden>
+      <header class="services-panel-heading">
+        <div><p class="eyebrow">Combined capacity</p><h2 id="services-title">Service meters</h2></div>
+        <button class="button button-quiet" id="edit-services-button" type="button">Manage services</button>
+      </header>
+      <div class="service-grid" id="service-grid" aria-live="polite"></div>
+    </section>
+
+    <section class="dashboard-toolbar" aria-label="Dashboard controls">
+      <label class="search-control">
+        <span class="visually-hidden">Search devices</span>
+        <span aria-hidden="true">⌕</span>
+        <input id="search-input" type="search" placeholder="Search by name or IP address" autocomplete="off">
+      </label>
+      <label class="filter-control">
+        <span>Status</span>
+        <select id="status-filter">
+          <option value="all">All devices</option>
+          <option value="online">Online</option>
+          <option value="warning">Warnings</option>
+          <option value="offline">Offline</option>
+          <option value="pending">Pending</option>
+        </select>
+      </label>
+      <label class="refresh-rate-control">
+        <span>Auto refresh</span>
+        <select id="refresh-rate-select" aria-label="Auto refresh interval">
+          <option value="1">1 second</option>
+          <option value="2">2 seconds</option>
+          <option value="5">5 seconds</option>
+          <option value="10">10 seconds</option>
+          <option value="15">15 seconds</option>
+          <option value="30">30 seconds</option>
+          <option value="60">1 minute</option>
+        </select>
+      </label>
+      <label class="refresh-rate-control">
+        <span>Trend</span>
+        <select id="trend-range-select" aria-label="Phase trend time range"><option value="15">15 minutes</option><option value="60" selected>60 minutes</option></select>
+      </label>
+      <button class="button button-quiet refresh-button" id="refresh-button" type="button">
+        <span aria-hidden="true">↻</span> Refresh now
+      </button>
+    </section>
+
+    <section class="device-grid" id="device-grid" aria-live="polite" aria-busy="true"></section>
+
+    <section class="empty-state" id="empty-state" hidden>
+      <div class="empty-visual" aria-hidden="true"><span></span><span></span><span></span></div>
+      <p class="eyebrow">Ready to monitor</p>
+      <h2>Add the power devices on this network</h2>
+      <p>Enter each device IP address and an optional show-friendly name. Power Monitor will handle the live checks and extraction.</p>
+      <button class="button button-primary" id="empty-add-button" type="button">Add your first device</button>
+    </section>
+  </main>
+
+  <dialog id="devices-dialog" class="app-dialog wide-dialog">
+    <div class="dialog-shell">
+      <header class="dialog-header">
+        <div><p class="eyebrow">Configuration</p><h2>Manage devices</h2><p>Add, edit, or remove every unit you want on the dashboard.</p></div>
+        <button class="icon-button close-dialog" type="button" aria-label="Close device manager">×</button>
+      </header>
+      <div class="device-manager">
+        <section class="configured-devices" aria-labelledby="configured-title">
+          <div class="section-heading"><h3 id="configured-title">Configured devices</h3><span id="configured-count">0 devices</span></div>
+          <div class="discovery-panel">
+            <div><strong>Discover network devices</strong><small>Scans one private /23 range (510 addresses) for compatible DKM411 devices.</small></div>
+            <div class="discovery-controls"><input id="discovery-subnet" placeholder="10.1.0.0/23" autocomplete="off"><button class="button button-secondary" id="discover-button" type="button">Discover</button></div>
+            <div class="discovery-results" id="discovery-results" aria-live="polite"></div>
+          </div>
+          <div class="configured-list" id="configured-list"></div>
+          <button class="button button-secondary add-device-button" id="add-device-button" type="button">＋ Add another device</button>
+        </section>
+        <section class="device-editor" aria-labelledby="editor-title">
+          <form id="device-form">
+            <div class="section-heading"><h3 id="editor-title">New device</h3></div>
+            <input id="device-id" type="hidden">
+            <label class="field full-field">
+              <span>Device type</span>
+              <select id="device-type"><option value="distro">Power distro</option><option value="cam_split">Cam split</option></select>
+              <small>Cam splits display their four current readings but do not add load to a service total.</small>
+            </label>
+            <label class="field full-field">
+              <span>Device name <small>Optional</small></span>
+              <input id="device-name" maxlength="80" placeholder="e.g. Stage left distro" autocomplete="off">
+            </label>
+            <label class="field full-field">
+              <span>Device IP address</span>
+              <input id="device-address" required placeholder="e.g. 10.1.1.219" inputmode="decimal" autocomplete="off">
+              <small>Enter the numeric IPv4 or IPv6 address shown by the device.</small>
+            </label>
+            <label class="field full-field" id="breaker-field">
+              <span>Breaker amps <small>Optional</small></span>
+              <div class="input-with-unit"><input id="device-breaker-amps" type="number" min="1" max="100000" step="1" inputmode="decimal" placeholder="e.g. 100"><span>amps</span></div>
+              <small>The breaker badge turns yellow when peak demand reaches 80%, and red at 100%.</small>
+            </label>
+            <div class="field-row">
+              <label class="field">
+                <span>Connection type</span>
+                <select id="device-scheme"><option value="http">HTTP</option><option value="https">HTTPS</option></select>
+              </label>
+              <label class="field">
+                <span>Port</span>
+                <input id="device-port" required type="number" min="1" max="65535" value="80" inputmode="numeric">
+              </label>
+            </div>
+            <label class="field full-field">
+              <span>Device page path</span>
+              <input id="device-path" required value="/" placeholder="/">
+              <small>Usually “/”. Change this only if the device page uses a path such as /status.</small>
+            </label>
+            <div class="editor-actions">
+              <button class="button button-primary" type="submit" id="stage-device-button">Add to list</button>
+              <button class="button button-quiet" type="button" id="cancel-edit-button" hidden>Cancel edit</button>
+            </div>
+          </form>
+        </section>
+      </div>
+      <footer class="dialog-footer">
+        <p id="device-save-note">Changes are saved on this computer.</p>
+        <div><button class="button button-quiet close-dialog" type="button">Cancel</button><button class="button button-primary" id="save-devices-button" type="button">Save changes</button></div>
+      </footer>
+    </div>
+  </dialog>
+
+  <dialog id="services-dialog" class="app-dialog wide-dialog">
+    <div class="dialog-shell">
+      <header class="dialog-header">
+        <div><p class="eyebrow">Combined capacity</p><h2>Manage services</h2><p>Name each incoming service, set its amp rating, and choose the distros and Cam splits connected to it.</p></div>
+        <button class="icon-button close-dialog" type="button" aria-label="Close service manager">×</button>
+      </header>
+      <div class="service-manager">
+        <section class="configured-services" aria-labelledby="configured-services-title">
+          <div class="section-heading"><h3 id="configured-services-title">Configured services</h3><span id="configured-services-count">0 services</span></div>
+          <div class="configured-list" id="configured-services-list"></div>
+          <button class="button button-secondary add-device-button" id="add-service-button" type="button">＋ Add another service</button>
+        </section>
+        <section class="service-editor" aria-labelledby="service-editor-title">
+          <form id="service-form">
+            <div class="section-heading"><h3 id="service-editor-title">New service</h3></div>
+            <input id="service-id" type="hidden">
+            <label class="field full-field">
+              <span>Service name</span>
+              <input id="service-name" required maxlength="80" placeholder="e.g. Ballroom 400A service" autocomplete="off">
+            </label>
+            <label class="field full-field">
+              <span>Service amp rating</span>
+              <div class="input-with-unit"><input id="service-amp-rating" required type="number" min="1" max="100000" step="1" inputmode="decimal"><span>amps</span></div>
+              <small>The service meter compares its highest combined phase with this rating.</small>
+            </label>
+            <fieldset class="service-device-fieldset">
+              <legend>Devices on this service</legend>
+              <div class="service-device-list" id="service-device-list"></div>
+            </fieldset>
+            <div class="editor-actions">
+              <button class="button button-primary" type="submit" id="stage-service-button">Add to list</button>
+              <button class="button button-quiet" type="button" id="cancel-service-edit-button" hidden>Cancel edit</button>
+            </div>
+          </form>
+        </section>
+      </div>
+      <footer class="dialog-footer">
+        <p>Each device can belong to one service. Cam splits are display-only and are never counted in service load.</p>
+        <div><button class="button button-quiet close-dialog" type="button">Cancel</button><button class="button button-primary" id="save-services-button" type="button">Save changes</button></div>
+      </footer>
+    </div>
+  </dialog>
+
+  <dialog id="settings-dialog" class="app-dialog settings-dialog">
+    <form id="settings-form" class="dialog-shell">
+      <header class="dialog-header">
+        <div><p class="eyebrow">Monitor behavior</p><h2>Settings</h2><p>These values apply to every configured device.</p></div>
+        <button class="icon-button close-dialog" type="button" aria-label="Close settings">×</button>
+      </header>
+      <div class="settings-body">
+        <label class="field full-field">
+          <span>Refresh interval</span>
+          <div class="input-with-unit"><input id="refresh-seconds" type="number" min="1" max="3600" step="0.5" required><span>seconds</span></div>
+          <small>How often Power Monitor requests a fresh page from each device.</small>
+        </label>
+        <label class="field full-field">
+          <span>Request timeout</span>
+          <div class="input-with-unit"><input id="timeout-seconds" type="number" min="0.25" max="60" step="0.25" required><span>seconds</span></div>
+          <small>A device is shown offline if it does not answer within this time.</small>
+        </label>
+        <label class="field full-field">
+          <span>Maximum page size</span>
+          <div class="input-with-unit"><input id="max-response-kb" type="number" min="32" max="4096" step="1" required><span>KB</span></div>
+          <small>Limits memory use when a device returns an unexpectedly large page.</small>
+        </label>
+        <section class="update-settings" aria-labelledby="update-settings-title">
+          <div><strong id="update-settings-title">Software updates</strong><small id="update-status-text">Checking GitHub Releases…</small></div>
+          <button class="button button-secondary" id="check-update-button" type="button">Check now</button>
+        </section>
+      </div>
+      <footer class="dialog-footer"><span></span><div><button class="button button-quiet close-dialog" type="button">Cancel</button><button class="button button-primary" type="submit">Save settings</button></div></footer>
+    </form>
+  </dialog>
+
+  <dialog id="alerts-dialog" class="app-dialog alerts-dialog">
+    <div class="dialog-shell">
+      <header class="dialog-header">
+        <div><p class="eyebrow">Operational warnings</p><h2>Alerts</h2><p>Alerts trigger after three consecutive readings to reduce nuisance notifications.</p></div>
+        <button class="icon-button close-dialog" type="button" aria-label="Close alerts">×</button>
+      </header>
+      <div class="alerts-body" id="alerts-list"></div>
+      <footer class="dialog-footer"><p>Alerts stay inside this dashboard; Windows pop-up notifications are disabled.</p><div><button class="button button-primary" id="acknowledge-alerts-button" type="button">Acknowledge all</button></div></footer>
+    </div>
+  </dialog>
+
+  <dialog id="diagnostics-dialog" class="app-dialog diagnostics-dialog">
+    <div class="dialog-shell">
+      <header class="dialog-header diagnostics-header">
+        <div><p class="eyebrow">Captured device page</p><h2 id="diagnostics-title">Diagnostics</h2><p id="diagnostics-subtitle"></p></div>
+        <button class="icon-button close-dialog" type="button" aria-label="Close diagnostics">×</button>
+      </header>
+      <nav class="tab-list" aria-label="Diagnostics views">
+        <button type="button" class="tab-button active" data-tab="overview">Overview</button>
+        <button type="button" class="tab-button" data-tab="tables">Tables &amp; forms</button>
+        <button type="button" class="tab-button" data-tab="raw">Raw capture</button>
+      </nav>
+      <div class="diagnostics-body" id="diagnostics-body"></div>
+      <footer class="dialog-footer">
+        <p>Raw data stays on this computer unless you copy it.</p>
+        <div><button class="button button-secondary" id="copy-diagnostics-button" type="button">Copy diagnostics</button><button class="button button-quiet close-dialog" type="button">Close</button></div>
+      </footer>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

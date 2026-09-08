@@ -1,0 +1,13 @@
+.DS_Store
+node_modules/
+dist/
+build/
+.venv/
+__pycache__/
+*.pyc
+services/lux/desktop-web/
+services/lux/desktop-dist/
+services/lux/dist/
+services/lux/.openai/
+services/lux/.wrangler/
+*.log

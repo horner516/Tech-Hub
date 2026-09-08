@@ -1,0 +1,1 @@
+{"name":"tech-hub","version":"0.1.0","private":true,"description":"One Mac application for D’san Ready, Lux Link, and Power Monitor","scripts":{"test":"node --test tests/*.test.cjs","start":"node hub/server.cjs","build:mac":"bash scripts/build-mac.sh"},"engines":{"node":">=22"}}
