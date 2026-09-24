@@ -7,21 +7,22 @@ import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { loadConfig } from './config.js';
 import { buildDump, toJson } from './dump.js';
-import { Swp08Client } from './swp08/client.js';
+import { clientFor } from './managed-router.js';
+import validation from './validate-config.cjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const flag = (name, fallback) => (args.includes(name) ? args[args.indexOf(name) + 1] : fallback);
-const config = loadConfig(path.resolve(flag('--config', path.join(root, 'config.json'))));
+const config = validation.resolve(loadConfig(path.resolve(flag('--config', path.join(root, 'config.json'))))); // the active router
 const outDir = path.resolve(flag('--out', path.join(root, 'exports')));
 
 if (config.mock?.enabled) {
-  console.error('config.json still has "mock": { "enabled": true }. Turn the mock off and set router.host to the Ultrix first.');
+  console.error('config.json still has "mock": { "enabled": true }. Turn the mock off and set the address of the active router first.');
   process.exit(1);
 }
 
 const levels = (config.levels ?? [{}]).length;
-const client = new Swp08Client({ ...config.router, allowRouting: false, levels, destinations: config.destinations?.count ?? 0 });
+const client = clientFor({ ...config.router, allowRouting: false, levels, destinations: config.destinations?.count ?? 0 });
 client.on('log', (level, msg) => { if (level !== 'debug') console.log(`  ${level}: ${msg}`); });
 
 let lastNames = Date.now();
@@ -35,7 +36,7 @@ client.start();
 const deadline = Date.now() + 60000;
 while (!client.ready && Date.now() < deadline) await sleep(200);
 if (!client.ready) {
-  console.error('The router did not become ready within 60 seconds. Check router.host, router.port and that SW-P-08 is enabled.');
+  console.error('The router did not become ready within 60 seconds. Check the router address and port, and that its control protocol is enabled.');
   client.stop();
   process.exit(1);
 }

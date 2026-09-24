@@ -31,7 +31,7 @@ const READ_ONLY_COMMANDS = new Set([
  * SW-P-08 controller connection to a router.
  *
  * Status: 'disconnected' -> 'loading' (names + tally dump) -> 'ready'. Reconnects forever with backoff.
- * Events: 'status' (status), 'route' ({ dest, level, src, initial }), 'names' (), 'log' (level, msg)
+ * Events: 'status' (status), 'route' ({ dest, level, src, previousSrc, initial }), 'names' (), 'log' (level, msg)
  * State:  sourceNames / destNames (Map<number,string>), routes (Map<dest, Map<level, src>>)
  */
 export class Swp08Client extends EventEmitter {
@@ -259,9 +259,12 @@ export class Swp08Client extends EventEmitter {
   #applyRoute(dest, level, src) {
     let levels = this.routes.get(dest);
     if (!levels) this.routes.set(dest, levels = new Map());
-    if (levels.get(level) === src) return;
+    const previousSrc = levels.get(level);
+    if (previousSrc === src) return;
     levels.set(level, src);
-    this.emit('route', { dest, level, src, initial: this.status !== 'ready' });
+    // previousSrc is 0 (not undefined) for a level never seen before, matching the "no source" value -
+    // there is no real prior route to revert to, and callers should treat 0 that way either way.
+    this.emit('route', { dest, level, src, previousSrc: previousSrc ?? 0, initial: this.status !== 'ready' });
   }
 
   // ---- initial load -----------------------------------------------------------------------

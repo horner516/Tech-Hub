@@ -12,6 +12,7 @@
 <body>
   <header class="top">
     <h1 id="title">Router</h1>
+    <span id="routerName" class="router-name" hidden></span>
     <select id="profile" aria-label="Profile" hidden></select>
     <span id="status" class="pill" role="status">connecting</span>
   </header>
@@ -23,11 +24,14 @@
 
   <main>
     <section id="route">
-      <button class="slot" id="dstSlot" type="button">
-        <span class="slot-label">Destination</span>
-        <span class="slot-name" id="dstName">Choose destination</span>
-        <span class="slot-now" id="dstNow"></span>
-      </button>
+      <div class="dst-wrap">
+        <button class="slot" id="dstSlot" type="button">
+          <span class="slot-label">Destination</span>
+          <span class="slot-name" id="dstName">Choose destination</span>
+          <span class="slot-now" id="dstNow"></span>
+        </button>
+        <button type="button" class="revert-btn" id="revertBtn" hidden>↺ Revert</button>
+      </div>
       <div class="arrow" aria-hidden="true">▼</div>
       <button class="slot" id="srcSlot" type="button">
         <span class="slot-label">Source</span>

@@ -17,4 +17,4 @@ function dependency(name,from){
 }
 dependency('net-snmp',source);
 copy(path.join(root,'THIRD_PARTY.md'),path.join(destination,'THIRD_PARTY.md'));
-console.log('Bundled NETGEAR AV Switchboard, Record Monitor, and Ultrix Panel.');
+console.log('Bundled NETGEAR AV Switchboard, Record Monitor, and Router Panel.');

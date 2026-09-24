@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from './config.js';
 import { createMockRouter } from './mock-router.js';
+import { createVideohubMock } from './videohub/mock.js';
 import { createPanelServer } from './server.js';
 import { ManagedRouter } from './managed-router.js';
 import validation from './validate-config.cjs';
@@ -22,17 +23,19 @@ function loadReplay(file) {
   return { sources: toList(dump.sources), dests: toList(dump.destinations), initialRoutes: dump.routes };
 }
 
-let config = loadConfig(configPath);
-if(process.env.TECH_HUB_MANAGED==='1')validation.validateUltrix(config);
+// config.json holds several saved routers; the panel runs on the active one, resolved to the single-router shape.
+function readConfig(){const raw=loadConfig(configPath);if(process.env.TECH_HUB_MANAGED==='1')validation.validateRouterPanel(raw);return validation.resolve(raw);}
+let config = readConfig();
 const log = (level, msg) => console.log(`${new Date().toISOString().slice(11, 19)} ${level.padEnd(5)} ${msg}`);
 const levelCount = () => (config.levels ?? [{}]).length;
 
 let mock = null;
 if (config.mock?.enabled) {
   const replay = config.mock.replay ? loadReplay(path.resolve(path.dirname(configPath), config.mock.replay)) : {};
-  mock = createMockRouter({ levels: levelCount(), chaos: 0, ...replay, ...config.mock, log });
+  const videohub = config.router.type === 'videohub';
+  mock = videohub ? createVideohubMock({ chaos: 0, ...config.mock, log }) : createMockRouter({ levels: levelCount(), chaos: 0, ...replay, ...config.mock, log });
   const port = await mock.listen(config.router.port, '127.0.0.1');
-  log('info', `mock SW-P-08 router listening on 127.0.0.1:${port} (${mock.sourceCount} sources, ${mock.destCount} destinations)`);
+  log('info', `mock ${videohub ? 'Videohub' : 'SW-P-08'} router listening on 127.0.0.1:${port} (${mock.sourceCount} sources, ${mock.destCount} destinations)`);
 }
 
 // Routing is on unless config.router.allowRouting is explicitly false (a read-only connection).
@@ -42,9 +45,10 @@ log('info', allowRouting ? 'routing enabled' : 'routing DISABLED (router.allowRo
 router.on('log', log);
 router.on('status', (s) => log('info', `router ${s}`));
 router.configure(config);
-if (!config.router.host) log('info', 'Set the router host in Tech Hub service settings to connect.');
+log('info', `active router: ${config.routerName} (${config.router.type === 'videohub' ? 'Blackmagic Videohub' : 'SW-P-08'})`);
+if (!config.router.host) log('info', 'Add the router address in Router Panel settings (/setup) to connect.');
 
-function reloadConfig(){const next=loadConfig(configPath);validation.validateUltrix(next);const accessChanged=!isDeepStrictEqual(config.profiles,next.profiles)||config.readOnly!==next.readOnly;router.configure(next);config=next;panel.invalidate({accessChanged});log('info','settings applied live');}
+function reloadConfig(){const raw=loadConfig(configPath);validation.validateRouterPanel(raw);const next=validation.resolve(raw);const accessChanged=!isDeepStrictEqual(config.profiles,next.profiles)||config.readOnly!==next.readOnly,routerChanged=config.routerId!==next.routerId;router.configure(next);config=next;panel.invalidate({accessChanged,routerChanged});log('info',routerChanged?`switched to router ${next.routerName}`:'settings applied live');}
 const panel = createPanelServer({ getConfig: () => config, router, publicDir: path.join(root, 'public'), reloadConfig });
 const port = await panel.listen(Number(process.env.TECH_HUB_BACKEND_PORT || config.server?.port || 8080), process.env.TECH_HUB_BACKEND_HOST || config.server?.host || '0.0.0.0');
 log('info', `panel on http://localhost:${port}`);

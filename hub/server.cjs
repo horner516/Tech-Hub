@@ -17,7 +17,7 @@ const definitions = [
   {id:'power', name:'Power Monitor', detail:'Power distribution', port:8703, backendPort:18703},
   {id:'netgear', name:'NETGEAR AV Switchboard', detail:'Switch discovery & monitoring', port:8704, backendPort:18704},
   {id:'record', name:'Record Monitor', detail:'HyperDeck & AJA Ki Pro', port:8705, backendPort:18705},
-  {id:'ultrix', name:'Ultrix Panel', detail:'Ross router control', port:8706, backendPort:18706},
+  {id:'ultrix', name:'Router Panel', detail:'Ross Ultrix & Blackmagic Videohub control', port:8706, backendPort:18706},
 ];
 const root = path.resolve(__dirname, '..');
 function save(file, data) {
@@ -54,7 +54,7 @@ function sameOrigin(req) { return req.headers['sec-fetch-site']!=='cross-site' &
 function listen(server,port,host) { return new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,host,()=>{server.removeListener('error',reject);resolve();});}); }
 function close(server) { server.closeAllConnections(); return new Promise(resolve=>server.close(resolve)); }
 function ips(host) { return host==='127.0.0.1'?[]:[...new Set(Object.values(os.networkInterfaces()).flat().filter(n=>n&&!n.internal&&n.family==='IPv4').map(n=>n.address))]; }
-function loginPage(name,error='') { return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${name} · Tech Hub</title><script src="/__hub/ultrix-editor.js" defer></script><script src="/__hub/chrome.js" defer></script><link rel="icon" type="image/svg+xml" href="/__hub/favicon.svg"><style>:root{color-scheme:dark}body{background:#071015;color:#f2f7f5;font:16px system-ui;min-height:95vh;margin:0}main{width:min(360px,85vw);margin:8vh auto}main>p:first-child{color:#ff8a1f;font-weight:700;letter-spacing:.15em}input,button{box-sizing:border-box;width:100%;padding:14px;margin:10px 0;border-radius:8px;border:1px solid #31505a;font:inherit}input{background:#0c181e;color:#f2f7f5}button{background:#ff8a1f;color:#1b0d02;border-color:#ff8a1f;font-weight:650;cursor:pointer}button:hover{background:#ffa24f}input:focus-visible,button:focus-visible{outline:2px solid #ff8a1f;outline-offset:3px}p{color:#8ca3aa}p[role=alert]{color:#ff7a7a}</style><main><p>TECH HUB</p><h1>${name}</h1><p>Enter this service’s access password.</p><form method="post" action="/__hub/login"><label for="password">Service password</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="256"><button>Open dashboard</button></form><p role="alert">${error}</p></main>`; }
+function loginPage(name,error='') { return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${name} · Tech Hub</title><script src="/__hub/chrome.js" defer></script><link rel="icon" type="image/svg+xml" href="/__hub/favicon.svg"><style>:root{color-scheme:dark}body{background:#071015;color:#f2f7f5;font:16px system-ui;min-height:95vh;margin:0}main{width:min(360px,85vw);margin:8vh auto}main>p:first-child{color:#ff8a1f;font-weight:700;letter-spacing:.15em}input,button{box-sizing:border-box;width:100%;padding:14px;margin:10px 0;border-radius:8px;border:1px solid #31505a;font:inherit}input{background:#0c181e;color:#f2f7f5}button{background:#ff8a1f;color:#1b0d02;border-color:#ff8a1f;font-weight:650;cursor:pointer}button:hover{background:#ffa24f}input:focus-visible,button:focus-visible{outline:2px solid #ff8a1f;outline-offset:3px}p{color:#8ca3aa}p[role=alert]{color:#ff7a7a}</style><main><p>TECH HUB</p><h1>${name}</h1><p>Enter this service’s access password.</p><form method="post" action="/__hub/login"><label for="password">Service password</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="256"><button>Open dashboard</button></form><p role="alert">${error}</p></main>`; }
 async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), launch=true,checkUpdates=launch}={}) {
   const updates=require('./updates.cjs').createUpdateChecker(require('../package.json').version);
   const config=loadConfig(dir), sessions=new Map(), attempts=new Map(), states=new Map(), servers=[],supervisors=new Map();
@@ -226,7 +226,7 @@ async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), la
         const headers={...req.headers,host:`127.0.0.1:${d.backendPort}`}; delete headers.cookie;delete headers.authorization;
         headers['x-techhub-local-client']=['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress)?'1':'0';
         headers['accept-encoding']='identity';
-        // Preserve only Ultrix's profile session, never another service's cookies.
+        // Preserve only Router Panel's profile session, never another service's cookies.
         if(d.id==='ultrix'&&/^[a-f0-9]+$/.test(cookies.techhub_ultrix_profile||''))headers.cookie=`sid=${cookies.techhub_ultrix_profile}`;
         if(headers.origin)headers.origin=`http://127.0.0.1:${d.backendPort}`;
         activeResponses.get(d.id).add(res);

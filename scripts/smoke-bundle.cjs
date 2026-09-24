@@ -35,7 +35,7 @@ try {
  const recordState=await fetch(record+'/api/status').then(r=>r.json());assert.deepEqual(recordState.devices,[]);assert.equal(recordState.control.allowFormat,false);
  const remoteRecord=await fetch(`http://127.0.0.1:${hub.config.services.record.backendPort}/api/status`,{headers:{'x-techhub-local-client':'0'}}).then(r=>r.json());assert.equal(remoteRecord.control.enabled,false);
  const configURL=admin+'/api/service-config?id=ultrix',ultrixConfig=await fetch(configURL).then(r=>r.json());
- assert.equal(ultrixConfig.router.host,'');ultrixConfig.profiles.viewer.pin='fixture-only';
+ assert.equal(ultrixConfig.routers[0].router.host,'');ultrixConfig.routers[0].profiles.viewer.pin='fixture-only';
  assert.equal((await fetch(configURL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ultrixConfig)})).status,200);
  for(let i=0;i<100&&hub.status().services.find(s=>s.id==='ultrix').state!=='running';i++)await new Promise(r=>setTimeout(r,100));
  assert.equal((await fetch(ultrix+'/api/state?profile=viewer')).status,401);

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { after, before, test } from 'node:test';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import { createPanelServer } from '../src/server.js';
 import { smallNames, startPair, until } from './helpers.js';
@@ -172,5 +173,68 @@ test('refresh-names endpoint: refreshes, reports changes, updates the timestamp,
 test('refresh-names honours PIN profiles and rejects non-JSON posts', async () => {
   assert.equal((await post('/api/refresh-names?profile=eng', {})).status, 401);
   const res = await fetch(`${base}/api/refresh-names?profile=op`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: '{}' });
+  assert.equal(res.status, 415);
+});
+
+test('revert: puts a destination back to its previous source, and a second press toggles back', async () => {
+  assert.equal((await post('/api/revert?profile=op', { dest: 3 })).status, 404, 'nothing to revert before any take');
+
+  const take1 = await post('/api/take?profile=op', { dest: 3, src: 6, levels: [1] });
+  assert.equal((await take1.json()).confirmed, true);
+  await sleep(800); // each step needs its own burst window (>750ms) - see the caveat in server.js
+  const take2 = await post('/api/take?profile=op', { dest: 3, src: 4, levels: [1] });
+  assert.equal((await take2.json()).confirmed, true);
+  await sleep(800);
+
+  const rev1 = await post('/api/revert?profile=op', { dest: 3 });
+  assert.equal(rev1.status, 200);
+  const body1 = await rev1.json();
+  assert.equal(body1.ok, true);
+  assert.deepEqual(body1.results.map((r) => [r.src, r.levels, r.confirmed]), [[6, [1], true]]);
+  assert.equal(pair.client.routesFor(3).get(1), 6, 'reverted to the source before the last take');
+
+  await sleep(800); // a real button press is never this fast; see the burst-window caveat in server.js
+  assert.equal((await post('/api/revert?profile=op', { dest: 3 })).status, 200);
+  assert.equal(pair.client.routesFor(3).get(1), 4, 'a second revert swaps back - the revert itself started a new batch');
+});
+
+test('revert refuses a protected destination even if it has history, and bad input is rejected', async () => {
+  const protectedRes = await post('/api/revert?profile=op', { dest: 2 });
+  assert.equal(protectedRes.status, 403);
+  assert.match((await protectedRes.json()).error, /protected/);
+  assert.equal((await post('/api/revert?profile=op', { dest: 'x' })).status, 400);
+  assert.equal((await post('/api/revert?profile=op', { dest: 11 })).status, 403, 'destination outside the profile');
+});
+
+test('revert only offers levels the profile can route, and can run out of revertable levels', async () => {
+  // dest 4, level 3 only - level 3 is outside op's levelSet ([1, 2]), so nothing here should be revertable
+  pair.mock.setRoute(3, 4, 12);
+  await until(() => pair.client.routesFor(4).get(3) === 12, 2000, 'level 3 baseline');
+  await sleep(800);
+  pair.mock.setRoute(3, 4, 14);
+  await until(() => pair.client.routesFor(4).get(3) === 14, 2000, 'level 3 changed');
+
+  const res = await post('/api/revert?profile=op', { dest: 4 });
+  assert.equal(res.status, 404);
+  assert.match((await res.json()).error, /nothing to revert/);
+});
+
+test('revert refuses when the previous source is outside the profile', async () => {
+  // dest 9, source 15 is outside op's sourceSet (include 1-10)
+  pair.mock.setRoute(1, 9, 15);
+  await until(() => pair.client.routesFor(9).get(1) === 15, 2000, 'source 15 baseline');
+  await sleep(800);
+  pair.mock.setRoute(1, 9, 8);
+  await until(() => pair.client.routesFor(9).get(1) === 8, 2000, 'source changed to 8');
+
+  const res = await post('/api/revert?profile=op', { dest: 9 });
+  assert.equal(res.status, 403);
+  assert.match((await res.json()).error, /previous source/);
+  assert.equal(pair.client.routesFor(9).get(1), 8, 'refused, so nothing was sent');
+});
+
+test('revert is refused for a read-only profile and requires JSON', async () => {
+  assert.equal((await post('/api/revert?profile=ro', { dest: 3 })).status, 403);
+  const res = await fetch(`${base}/api/revert?profile=op`, { method: 'POST', headers: { 'content-type': 'text/plain' }, body: '{}' });
   assert.equal(res.status, 415);
 });

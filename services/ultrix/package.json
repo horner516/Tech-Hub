@@ -1,7 +1,7 @@
 {
-  "name": "ultrix-panel",
+  "name": "router-panel",
   "version": "0.1.0",
-  "description": "Mobile web panel for Ross Ultrix routers over SW-P-08",
+  "description": "Mobile web panel for Ross Ultrix (SW-P-08) and Blackmagic Videohub routers",
   "type": "module",
   "private": true,
   "engines": {

@@ -113,6 +113,24 @@ main { flex: 1; width: 100%; max-width: 760px; margin: 0 auto; padding: 8px var(
 .slot-now.changed { color: var(--take); }
 .arrow { text-align: center; color: var(--muted); padding: 6px 0; font-size: 14px; }
 
+.dst-wrap { position: relative; }
+.revert-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+  min-height: 36px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 13px;
+}
+.revert-btn:active { background: var(--accent-bg); border-color: var(--accent); }
+.revert-btn:disabled { color: var(--muted); cursor: progress; }
+
 .levels { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 10px; }
 .level {
   min-height: 44px;
@@ -277,3 +295,5 @@ dialog::backdrop { background: rgba(0, 0, 0, .6); }
 #toast.bad { border-color: var(--bad); }
 
 @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+
+.router-name { color: var(--muted); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%; }

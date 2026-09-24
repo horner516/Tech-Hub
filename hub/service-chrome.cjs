@@ -1,8 +1,8 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
-const files={'/__hub/chrome.css':['service-chrome.css','text/css'],'/__hub/ultrix-editor.js':['ultrix-editor.js','text/javascript'],'/__hub/chrome.js':['service-chrome.js','text/javascript'],'/__hub/theme.css':['service-theme.css','text/css']};
+const files={'/__hub/chrome.css':['service-chrome.css','text/css'],'/__hub/chrome.js':['service-chrome.js','text/javascript'],'/__hub/theme.css':['service-theme.css','text/css']};
 function asset(req,res){const entry=files[req.url];if(req.method!=='GET'||!entry)return false;res.writeHead(200,{'Content-Type':entry[1],'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(fs.readFileSync(path.join(__dirname,entry[0])));return true;}
-const script='<script src="/__hub/ultrix-editor.js" defer></script><script src="/__hub/chrome.js" defer></script>';
+const script='<script src="/__hub/chrome.js" defer></script>';
 function inject(req,res,response,headers,id){
  if(req.method!=='GET'||!String(headers['content-type']).includes('text/html')||headers['content-encoding'])return false;
  const chunks=[];let size=0,pass=false;

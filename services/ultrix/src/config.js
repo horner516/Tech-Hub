@@ -113,6 +113,7 @@ export function buildView(cfg, profileName, names, counts = {}) {
   return {
     json: {
       title: profile.title ?? cfg.title ?? 'Router',
+      router: cfg.routerName ? { name: cfg.routerName, type: cfg.router?.type ?? 'swp08' } : null,
       profile: profileName,
       readOnly,
       levels,

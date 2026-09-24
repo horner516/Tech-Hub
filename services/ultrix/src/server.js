@@ -17,9 +17,13 @@ const MIME = {
 const REFRESH_COOLDOWN_MS = 5000;
 
 const sha = (s) => createHash('sha256').update(String(s)).digest();
+const LOOPBACK = ['127.0.0.1', '::1', '::ffff:127.0.0.1'];
+const SETUP_FILES = { '/setup': 'setup.html', '/setup.html': 'setup.html', '/setup.js': 'setup.js', '/setup.css': 'setup.css' };
+/** The settings page and its data are for the Tech Hub computer only (Tech Hub marks those requests), like NETGEAR's setup. */
+const settingsClient = (req) => LOOPBACK.includes(req.socket.remoteAddress) && (process.env.TECH_HUB_MANAGED !== '1' || req.headers['x-techhub-local-client'] === '1');
 
 /**
- * HTTP + SSE front end. `router` is a Swp08Client (or anything with the same surface).
+ * HTTP + SSE front end. `router` is a ManagedRouter, Swp08Client or VideohubClient (they share one surface).
  * Access control model: a profile may carry a `pin`; the browser logs in once per profile and gets
  * an HttpOnly session cookie. Profiles without a pin are open to anyone who can reach the port.
  */
@@ -30,6 +34,16 @@ export function createPanelServer({ getConfig, router, publicDir, reloadConfig }
   const activity = [];
   let lastRefreshAt = 0;
   let activeCommands=0;
+  // Revert support: previousRoutes.get(dest) is that destination's full per-level source map as it was
+  // immediately before the most recent burst of changes (its own "one step back"). Rebuilt fresh each
+  // time a new burst starts (see the 750ms grouping below, which matches how `activity` entries group);
+  // a revert's own resulting changes start the next burst, so pressing Revert twice swaps back and forth.
+  // Caveat: the 750ms window exists to group one multi-level take's several level-events into a single
+  // burst, not to distinguish "same action" from "next action" - a revert fired within 750ms of the
+  // change it's undoing lands in that same burst and won't move previousRoutes, so a second revert
+  // right after (faster than any real button click) is a no-op rather than toggling further back.
+  const previousRoutes = new Map(); // dest -> Map<level, src>
+  const routeBursts = new Map(); // dest -> { startedAt, touchedLevels: Set<level> }
 
   const cfg = () => getConfig();
   const viewFor = (profile) => {
@@ -94,7 +108,7 @@ export function createPanelServer({ getConfig, router, publicDir, reloadConfig }
 
   // ---- router events ----------------------------------------------------------------------
 
-  router.on('route', ({ dest, level, src, initial }) => {
+  router.on('route', ({ dest, level, src, previousSrc, initial }) => {
     if (initial) return;
     const now = Date.now();
     const last = activity.at(-1);
@@ -103,6 +117,18 @@ export function createPanelServer({ getConfig, router, publicDir, reloadConfig }
     } else {
       activity.push({ t: now, dest, src, levels: [level] });
       if (activity.length > 100) activity.shift();
+    }
+    let burst = routeBursts.get(dest);
+    if (!burst || now - burst.startedAt > 750) {
+      burst = { startedAt: now, touchedLevels: new Set() };
+      routeBursts.set(dest, burst);
+      previousRoutes.set(dest, new Map());
+    } else {
+      burst.startedAt = now;
+    }
+    if (!burst.touchedLevels.has(level)) {
+      burst.touchedLevels.add(level);
+      previousRoutes.get(dest).set(level, previousSrc ?? 0);
     }
     for (const client of clients) {
       const view = viewFor(client.profile);
@@ -138,6 +164,11 @@ export function createPanelServer({ getConfig, router, publicDir, reloadConfig }
       await readJson(req);
       if(activeCommands)return json(res,409,{error:'Wait for the current router operation to finish.'});
       try{reloadConfig();return json(res,200,{ok:true});}catch(error){return json(res,400,{error:error.message});}
+    }
+    if (url.pathname === '/api/setup/names' && req.method === 'GET') {
+      if (!settingsClient(req)) return json(res, 403, { error: 'Settings are available only on the Tech Hub computer.' });
+      const c = cfg();
+      return json(res, 200, { routerId: c.routerId ?? null, routerName: c.routerName ?? null, status: router.status, sources: [...router.sourceNames], destinations: [...router.destNames] });
     }
     const profile = url.searchParams.get('profile') ?? defaultProfile(cfg());
 
@@ -181,6 +212,39 @@ export function createPanelServer({ getConfig, router, publicDir, reloadConfig }
       return json(res, 200, { ok: true, changed, loadedAt });
     }
 
+    if (req.method === 'POST' && url.pathname === '/api/revert') {
+      const view = viewFor(profile);
+      if (view.readOnly) return json(res, 403, { error: 'this profile is read-only' });
+      if (!router.ready) return json(res, 503, { error: `router is ${router.status}` });
+      const { dest } = await readJson(req);
+      if (!Number.isInteger(dest)) return json(res, 400, { error: 'dest must be an integer' });
+      if (!view.destSet.has(dest)) return json(res, 403, { error: 'destination not available' });
+      if (view.lockedDests.has(dest)) return json(res, 403, { error: 'destination is protected' });
+
+      const previous = previousRoutes.get(dest);
+      const entries = [...(previous ?? [])].filter(([level]) => view.levelSet.has(level));
+      if (!entries.length) return json(res, 404, { error: 'nothing to revert for this destination' });
+      const sources = new Set(entries.map(([, src]) => src));
+      for (const src of sources) {
+        if (src !== 0 && !view.sourceSet.has(src)) return json(res, 403, { error: 'the previous source for this destination is not available in this profile' });
+      }
+
+      const groups = new Map(); // src -> levels[]
+      for (const [level, src] of entries) {
+        if (!groups.has(src)) groups.set(src, []);
+        groups.get(src).push(level);
+      }
+      const results = [];
+      activeCommands++;
+      try {
+        for (const [src, levels] of groups) {
+          if (src === 0) continue; // no prior source on this level (e.g. it was never routed before) - nothing to send
+          results.push({ src, levels, ...(await router.route({ dest, src, levels })) });
+        }
+      } finally { activeCommands--; }
+      return json(res, 200, { ok: true, results });
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/take') {
       const view = viewFor(profile);
       if (view.readOnly) return json(res, 403, { error: 'this profile is read-only' });
@@ -217,7 +281,10 @@ export function createPanelServer({ getConfig, router, publicDir, reloadConfig }
     try {
       const url = new URL(req.url, 'http://localhost');
       if (url.pathname.startsWith('/api/') || url.pathname === '/events') await api(req, res, url);
-      else if (req.method === 'GET') await serveStatic(req, res, url);
+      else if (req.method === 'GET' && SETUP_FILES[url.pathname]) {
+        if (!settingsClient(req)) { res.writeHead(403, { 'content-type': 'text/plain' }).end('Settings are available only on the Tech Hub computer.'); return; }
+        await serveStatic(req, res, new URL('/' + SETUP_FILES[url.pathname], url));
+      } else if (req.method === 'GET') await serveStatic(req, res, url);
       else res.writeHead(405).end();
     } catch (err) {
       if (!res.headersSent) json(res, err.status ?? 500, { error: err.status ? err.message : 'internal error' });
@@ -228,12 +295,19 @@ export function createPanelServer({ getConfig, router, publicDir, reloadConfig }
   return {
     server,
     /** Call after the config file changes so open browsers refetch it. */
-    invalidate({accessChanged=false}={}) {
+    invalidate({accessChanged=false,routerChanged=false}={}) {
       views.clear();
+      // A different router means different port numbers: old activity and undo history would point at the wrong things.
+      if(routerChanged){activity.length=0;previousRoutes.clear();routeBursts.clear();}
       if(accessChanged){sessions.clear();for(const client of clients)client.res.end();clients.clear();return;}
       for (const client of clients) sse(client, 'config', {});
     },
-    listen: (port, host) => new Promise((resolve) => server.listen(port, host, () => resolve(server.address().port))),
+    listen: (port, host) => new Promise((resolve, reject) => {
+      const onError = (err) => { server.removeListener('listening', onListening); reject(err); };
+      const onListening = () => { server.removeListener('error', onError); resolve(server.address().port); };
+      server.once('error', onError);
+      server.listen(port, host, onListening);
+    }),
     close: () => new Promise((resolve) => {
       clearInterval(keepAlive);
       for (const c of clients) c.res.end();

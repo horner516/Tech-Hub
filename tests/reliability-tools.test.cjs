@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),vm=require('node:vm');
 const backup=require('../hub/backups.cjs'),service=require('../hub/service-config.cjs');
-test('Ultrix validation rejects broken profiles, ranges, labels, categories and levels before saving',()=>{
- for(const mutate of [c=>c.profiles.operator.levels='1,2',c=>c.sources={include:'8-2'},c=>c.sources={labels:{'-1':'bad'}},c=>c.sources={categories:[{name:'Bad',match:'['}]},c=>c.profiles.operator.levels=[2],c=>c.levels=[null],c=>c.profiles=null,c=>c.router.port=0,c=>c.destinations={count:Infinity}]){const c=structuredClone(service.defaults.ultrix);mutate(c);assert.throws(()=>service.validate('ultrix',c));}
+test('Router Panel validation rejects broken routers, profiles, ranges, labels, categories and levels before saving',()=>{
+ for(const mutate of [c=>c.profiles.operator.levels='1,2',c=>c.sources={include:'8-2'},c=>c.sources={labels:{'-1':'bad'}},c=>c.sources={categories:[{name:'Bad',match:'['}]},c=>c.profiles.operator.levels=[2],c=>c.levels=[null],c=>c.profiles=null,c=>c.router.port=0,c=>c.destinations={count:Infinity},c=>c.router.type='other',c=>c.id='Not An ID',c=>c.name='']){const c=structuredClone(service.defaults.ultrix);mutate(c.routers[0]);assert.throws(()=>service.validate('ultrix',c));}
  assert(service.validate('ultrix',structuredClone(service.defaults.ultrix)));
 });
 test('encrypted backups authenticate passphrases, enforce the file allowlist, retain ten snapshots and restore settings',async()=>{

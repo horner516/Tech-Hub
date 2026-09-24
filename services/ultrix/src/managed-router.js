@@ -1,9 +1,12 @@
 import { EventEmitter } from 'node:events';
 import { isDeepStrictEqual } from 'node:util';
 import { Swp08Client } from './swp08/client.js';
+import { VideohubClient } from './videohub/client.js';
+/** One client class per router type; both expose the same surface. */
+export const clientFor=options=>options.type==='videohub'?new VideohubClient(options):new Swp08Client(options);
 // Stable event surface for the HTTP panel while only the hardware connection is replaced.
 export class ManagedRouter extends EventEmitter {
-  constructor(factory=options=>new Swp08Client(options)){super();this.factory=factory;this.client=null;this.connection=null;this.forwarders=[];}
+  constructor(factory=clientFor){super();this.factory=factory;this.client=null;this.connection=null;this.forwarders=[];}
   configure(config){
     const options={...config.router,levels:config.levels.length,destinations:config.destinations?.count??0};
     const {allowRouting,...connection}=options;

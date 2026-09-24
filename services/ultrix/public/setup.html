@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Router Panel settings</title>
+  <link rel="stylesheet" href="/setup.css">
+</head>
+<body class="setup-page">
+  <main class="setup-main">
+    <nav class="setup-nav">
+      <div class="identity"><span class="logo">RP</span><span><b>ROUTER PANEL</b><small>SETTINGS</small></span></div>
+      <span class="local"><i></i>LOCAL SETTINGS</span>
+    </nav>
+    <header class="setup-header">
+      <span class="kicker">TECH HUB SERVICE</span>
+      <h1>Router settings</h1>
+      <p>Save each router you use, choose the one this panel controls, and decide what operators see. Only the active router is connected; the others keep their setup for when you switch.</p>
+    </header>
+
+    <p id="loading" class="note">Loading settings…</p>
+    <form id="settings" hidden novalidate>
+      <section class="card">
+        <div class="step"><b>1</b><span><strong>Routers</strong><small>The active router is the one the panel connects to. Switching reconnects the panel and uses that router’s own levels, lists and profiles.</small></span><em id="activeStatus"></em></div>
+        <div id="routers"></div>
+        <button type="button" class="add" id="addRouter">+ Add router</button>
+      </section>
+
+      <section class="card compact-card">
+        <div class="step"><b>2</b><span><strong>Panel title</strong><small>Shown at the top of the panel. A profile’s own display name replaces it for that profile.</small></span></div>
+        <label class="grow"><span>Title</span><input id="title" maxlength="256" required></label>
+      </section>
+
+      <div class="editing" id="editingBar">
+        <span>Panel setup for</span>
+        <div class="select-wrap"><select id="editing" aria-label="Router to set up"></select></div>
+        <small id="editingNote"></small>
+      </div>
+
+      <section class="card">
+        <div class="step"><b>3</b><span><strong>Levels</strong><small id="levelsHelp">Level order is the router’s level number, starting at 1. Update profile level limits if you remove a level.</small></span></div>
+        <div id="levels"></div>
+        <div id="levelGroupsBox">
+          <h3>Level presets</h3>
+          <p class="help">With more than six levels the panel shows these buttons (for example All, Video, Audio) instead of one button per level. Use numbers and ranges such as <code>2-17</code>.</p>
+          <div id="levelGroups"></div>
+        </div>
+      </section>
+
+      <section class="card" data-kind="sources">
+        <div class="step"><b>4</b><span><strong>Sources</strong><small>Which sources appear in the pickers, how they’re grouped, and name overrides.</small></span></div>
+        <div class="list-editor" id="sources"></div>
+      </section>
+
+      <section class="card" data-kind="destinations">
+        <div class="step"><b>5</b><span><strong>Destinations</strong><small>Protected destinations stay visible but can’t be routed from the panel.</small></span></div>
+        <div class="list-editor" id="destinations"></div>
+      </section>
+
+      <section class="card">
+        <div class="step"><b>6</b><span><strong>Access profiles</strong><small>Each profile is a view of this router: its own visible ports, levels, optional PIN, or read-only. Changing profiles signs viewers out.</small></span></div>
+        <label class="inline"><span>Default profile</span><div class="select-wrap"><select id="defaultProfile"></select></div></label>
+        <div id="profiles"></div>
+      </section>
+
+      <div id="message" role="status" aria-live="polite"></div>
+      <div class="actions"><a href="/">Back to panel</a><button type="submit" id="save"><span>Save settings</span><i>→</i></button></div>
+    </form>
+    <footer><span>●</span> Settings stay on this computer. They apply live; only a changed connection reconnects the router.</footer>
+  </main>
+  <script src="/setup.js"></script>
+</body>
+</html>

@@ -121,6 +121,7 @@ function renderSlots() {
   const nowEl = $('dstNow');
   nowEl.textContent = d ? (now ? `Now: ${now}` : 'Now: —') : '';
   nowEl.classList.toggle('changed', state.changedByOthers);
+  $('revertBtn').hidden = !d;
   $('srcName').textContent = s ? srcName(s) : 'Choose source';
   $('srcSlot').classList.toggle('chosen', Boolean(s));
   $('srcNow').textContent = '';
@@ -190,6 +191,8 @@ function renderNamesInfo() {
 
 function renderAll() {
   $('title').textContent = state.cfg?.title ?? 'Router';
+  $('routerName').textContent = state.cfg?.router?.name ?? '';
+  $('routerName').hidden = !state.cfg?.router?.name;
   document.title = state.cfg?.title ?? 'Router Panel';
   $('auto').checked = state.auto;
   renderStatus();
@@ -366,6 +369,7 @@ async function take() {
   state.changedByOthers = false;
   $('take').className = 'busy';
   $('take').disabled = true;
+  $('revertBtn').disabled = true;
   $('takeMain').textContent = 'SENDING…';
   $('takeSub').textContent = `${srcName(src)} → ${dstName(dest)}`;
   try {
@@ -388,7 +392,45 @@ async function take() {
     state.busy = false;
     state.ownTakeUntil = Date.now() + 1500;
     state.levels = new Set(state.cfg.levels.map((l) => l.n)); // always fall back to all levels after a take
+    $('revertBtn').disabled = false;
     renderLevels();
+    renderSlots();
+  }
+}
+
+/** Puts the destination back to whatever was on it right before the most recent change - by anyone,
+ * not just this panel. Pressing it again swaps back, since that "revert" is itself a new change. */
+async function revert() {
+  if (state.busy || !state.dest) return;
+  const dest = state.dest;
+  state.busy = true;
+  state.ownTakeUntil = Infinity;
+  state.changedByOthers = false;
+  $('take').disabled = true;
+  const btn = $('revertBtn');
+  btn.disabled = true;
+  btn.textContent = 'Reverting…';
+  try {
+    const res = await fetch(`/api/revert?profile=${enc(state.profile)}`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ dest }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (res.status === 404) toast('Nothing to revert for this destination.');
+      else throw new Error(data.error ?? `HTTP ${res.status}`);
+    } else if (data.results.some((r) => !r.confirmed)) {
+      toast('Revert sent, but the router did not confirm all of it.', true, 6000);
+    } else {
+      toast(`Reverted ${dstName(dest)} to ${routedSummary(dest) || 'its previous source'}`);
+    }
+  } catch (err) {
+    toast(err.message, true, 5000);
+  } finally {
+    state.busy = false;
+    state.ownTakeUntil = Date.now() + 1500;
+    btn.disabled = false;
+    btn.textContent = '↺ Revert';
+    renderTake();
     renderSlots();
   }
 }
@@ -531,6 +573,7 @@ function wire() {
   $('dstSlot').addEventListener('click', () => openPicker('destinations'));
   $('srcSlot').addEventListener('click', () => openPicker('sources'));
   $('take').addEventListener('click', take);
+  $('revertBtn').addEventListener('click', revert);
   $('pickerClose').addEventListener('click', closePicker);
   $('picker').addEventListener('close', () => { picker = null; });
   $('picker').addEventListener('click', (e) => { if (e.target === $('picker')) closePicker(); });

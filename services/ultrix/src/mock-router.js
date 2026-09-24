@@ -199,8 +199,10 @@ export function createMockRouter(options = {}) {
       (kind === 'source' ? srcNames : dstNames)[n - 1] = name;
       if (notify) broadcast([CMD.NAMES_UPDATED, 0]);
     },
-    listen: (port = 2000, host = '0.0.0.0') => new Promise((resolve) => {
-      server.listen(port, host, () => {
+    listen: (port = 2000, host = '0.0.0.0') => new Promise((resolve, reject) => {
+      const onError = (err) => { server.removeListener('listening', onListening); reject(err); };
+      const onListening = () => {
+        server.removeListener('error', onError);
         if (opts.chaos) {
           chaosTimer = setInterval(() => {
             const dest = 1 + Math.floor(Math.random() * Math.min(dstNames.length, 64));
@@ -210,7 +212,9 @@ export function createMockRouter(options = {}) {
           chaosTimer.unref();
         }
         resolve(server.address().port);
-      });
+      };
+      server.once('error', onError);
+      server.listen(port, host, onListening);
     }),
     close: () => new Promise((resolve) => {
       clearInterval(chaosTimer);

@@ -50,14 +50,18 @@ test('reports unconfirmed when the router ignores the connect (protected destina
   } finally { await stop(); }
 });
 
-test("emits 'route' for changes made by another controller, marked non-initial", async () => {
+test("emits 'route' for changes made by another controller, marked non-initial, with the prior source", async () => {
   const { mock, client, stop } = await startPair({ mock: { sources: smallNames('S', 20), dests: smallNames('D', 20) } });
   try {
     const seen = [];
     client.on('route', (e) => seen.push(e));
-    mock.setRoute(2, 4, 9);
+    mock.setRoute(2, 4, 9); // dest 4 starts on source 1 (the mock's default)
     await until(() => seen.length === 1, 2000, 'route event');
-    assert.deepEqual(seen[0], { dest: 4, level: 2, src: 9, initial: false });
+    assert.deepEqual(seen[0], { dest: 4, level: 2, src: 9, previousSrc: 1, initial: false });
+
+    mock.setRoute(2, 4, 15);
+    await until(() => seen.length === 2, 2000, 'second route event');
+    assert.equal(seen[1].previousSrc, 9, 'previousSrc tracks the source that was actually there, not just 1');
   } finally { await stop(); }
 });
 

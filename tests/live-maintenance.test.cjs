@@ -12,7 +12,7 @@ test('live settings, encrypted backup/restore and diagnostics work through the h
  const record=await fetch('http://127.0.0.1:29705/__hub/settings'),recordCfg=await record.json();recordCfg.pollIntervalMs=3750;
  assert.equal((await post('http://127.0.0.1:29705/__hub/settings',recordCfg,{'If-Match':record.headers.get('etag')})).status,200);
  assert.equal((await fetch('http://127.0.0.1:29705/api/status').then(r=>r.json())).pollIntervalMs,3750);
- const ultrix=await fetch('http://127.0.0.1:29706/__hub/settings'),ultrixCfg=await ultrix.json();ultrixCfg.profiles.operator.title='Updated fixture panel';
+ const ultrix=await fetch('http://127.0.0.1:29706/__hub/settings'),ultrixCfg=await ultrix.json();ultrixCfg.routers[0].profiles.operator.title='Updated fixture panel';
  assert.equal((await post('http://127.0.0.1:29706/__hub/settings',ultrixCfg,{'If-Match':ultrix.headers.get('etag')})).status,200);
  assert.equal((await fetch('http://127.0.0.1:29706/api/config').then(r=>r.json())).title,'Updated fixture panel');
  assert(hub.status().services.filter(s=>s.enabled).every(s=>s.state==='running'));
