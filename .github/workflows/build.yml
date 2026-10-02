@@ -32,7 +32,7 @@ jobs:
       - run: pnpm --dir services/lux install --frozen-lockfile
       - run: pnpm --dir services/netgear install --frozen-lockfile
       - run: python -m unittest discover -s services/dsan -p "test_*.py"
-      - run: node --test tests/*.test.cjs services/lux/tests/fetch-signal-snapshot.test.mjs services/ultrix/test/*.test.js
+      - run: node --test tests/*.test.cjs services/lux/tests/fetch-signal-snapshot.test.mjs services/ultrix/test/*.test.js services/netgear/test/*.test.mjs
       - run: go -C services/power test ./...
       - run: ./scripts/build-windows.ps1
         shell: pwsh
@@ -66,7 +66,7 @@ jobs:
       - run: pnpm --dir services/lux install --frozen-lockfile
       - run: pnpm --dir services/netgear install --frozen-lockfile
       - run: python -m unittest discover -s services/dsan -p "test_*.py"
-      - run: node --test tests/*.test.cjs services/lux/tests/fetch-signal-snapshot.test.mjs services/ultrix/test/*.test.js
+      - run: node --test tests/*.test.cjs services/lux/tests/fetch-signal-snapshot.test.mjs services/ultrix/test/*.test.js services/netgear/test/*.test.mjs
       - run: go -C services/power test ./...
       - run: bash scripts/build-mac.sh
       - run: node scripts/smoke-bundle.cjs "dist/Tech Hub.app/Contents/Resources"

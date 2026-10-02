@@ -58,6 +58,12 @@ test('Ultrix profile cookies and event streams survive the gateway; access chang
   const base='http://127.0.0.1:29206',response=await fetch(base,{headers:{Cookie:'techhub_ultrix_profile=abc123; techhub_dsan=secret','x-techhub-local-client':'0'}});
   assert.deepEqual(await response.json(),{cookie:'sid=abc123',local:'1'});
   assert.deepEqual(response.headers.getSetCookie(),['techhub_ultrix_profile=abc123; HttpOnly; SameSite=Strict; Path=/']);
+  // NETGEAR's edit unlock rides the same mechanism under its own cookie; neither service sees the other's session.
+  const netgear=await fetch('http://127.0.0.1:29204',{headers:{Cookie:'techhub_netgear_edit=def456; techhub_ultrix_profile=abc123'}});
+  assert.deepEqual(await netgear.json(),{cookie:'sid=def456',local:'1'});
+  assert.deepEqual(netgear.headers.getSetCookie(),['techhub_netgear_edit=abc123; HttpOnly; SameSite=Strict; Path=/']);
+  assert.equal((await fetch(base,{headers:{Cookie:'techhub_netgear_edit=def456'}}).then(r=>r.json())).cookie,undefined);
+  assert.equal((await fetch('http://127.0.0.1:29201',{headers:{Cookie:'techhub_netgear_edit=def456'}}).then(r=>r.json())).cookie,undefined);
   const stream=await fetch(base+'/events'),reader=stream.body.getReader();assert.match(new TextDecoder().decode((await reader.read()).value),/ready/);
   const closed=reader.read().then(result=>assert(result.done),()=>{});
   const change=await fetch('http://127.0.0.1:29200/api/access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:'ultrix',password:'test-password'})});assert.equal(change.status,200);
