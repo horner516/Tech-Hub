@@ -20,6 +20,7 @@ jobs:
           version: '11.19.0'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --dir services/netgear install --frozen-lockfile
+      - run: node --test services/netgear/test/*.test.mjs
       - run: node scripts/build-universal.cjs
       - uses: actions/upload-artifact@v4
         with:

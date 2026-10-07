@@ -37,7 +37,13 @@ make_dmg() {
   cp -R "$app" "$staging/"
   ln -s /Applications "$staging/Applications"
   cp INSTALL.md "$staging/Install Tech Hub.txt"
-  /usr/bin/hdiutil create -volname "Tech Hub $version" -fs HFS+ -srcfolder "$staging" -ov -format UDZO "$project_dir/dist/$filename"
+  # hdiutil intermittently fails with "Resource busy" on CI runners while the previous image is still being scanned.
+  local attempt
+  for attempt in 1 2 3; do
+    if /usr/bin/hdiutil create -volname "Tech Hub $version" -fs HFS+ -srcfolder "$staging" -ov -format UDZO "$project_dir/dist/$filename"; then break; fi
+    if [[ $attempt == 3 ]]; then echo "hdiutil create failed 3 times for $filename" >&2; exit 1; fi
+    echo "hdiutil create failed for $filename (attempt $attempt); retrying in 10 s" >&2; sleep 10
+  done
   (cd dist && shasum -a 256 "$filename" > "$filename.sha256")
 }
 make_dmg Tech-Hub-macOS-arm64.dmg

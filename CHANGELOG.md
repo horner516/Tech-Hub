@@ -4,6 +4,13 @@
 
 - Add a compact AI SDK starting guide, per-module brief/agent scaffolding, and standalone development CLI with context, structured checks, isolated-data administrator/viewer previews and packaging. Full host integration still requires real Tech Hub testing.
 
+- **NETGEAR AV Switchboard module 1.1.0** (requires Tech Hub 1.0.4 or later, which forwards its edit-unlock session through the gateway):
+  - NETGEAR: PIN-gated VLAN changes for access ports on AV line switches (M4250, M4300, M4350, M4500), applied as the VLAN's AV network profile through the switch's AV interface. Each change re-reads the port first, verifies it over SNMP, saves to startup config, re-reads the switch and is logged to `vlan-changes.jsonl`, with a Revert button. Uses the AV interface's own profile-assign and Save calls (captured from an M4250's AV UI). Trunks, LAG members, switch uplinks, ports carrying the Tech Hub computer and ports with several learned devices stay read-only. The edit PIN is set on the local settings page and stored only as a scrypt hash; wrong PINs lock out with backoff. Stacked switches stay read-only for now.
+  - NETGEAR polling scales to large sites: discovery sweeps run every 5 minutes (configurable) instead of every poll; known switches are re-read on their own staggered schedule, four at a time; and a light link-status check (one GET per switch, every 3 seconds by default) pushes port up/down to dashboards over a live event stream. One request per switch is in flight at a time across all lanes, offline switches back off, and each switch read reuses one SNMPv3 session.
+  - NETGEAR: an SNMP walk can no longer hang a switch's refresh indefinitely; walks and reads have deadlines.
+  - NETGEAR: a switch's Refresh button re-reads only that switch, and the open port sheet updates live.
+  - NETGEAR endpoint IPs and names for ports that only showed a MAC: routers' ARP tables over SNMP (new **Endpoint names** settings, every VLAN they route), this computer's ARP table, and Bonjour/mDNS device names (e.g. "CAM1", "ATEM Constellation 8K"), all matched to the MAC each switch port learned. macOS hides its ARP table from apps, so on a Mac host the router source is what links names to ports.
+
 
 ## 1.0.3 — 2026-10-06
 

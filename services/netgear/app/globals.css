@@ -97,3 +97,39 @@
 .trunk-tags{display:flex;flex-wrap:wrap;gap:6px}
 .trunk-tags span{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:99px;background:#121920;border:1px solid var(--line);font-size:9px}
 .trunk-tags span i{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
+
+/* VLAN changes */
+.edit-chip{margin-right:10px;border:1px solid #2f75ae;background:#15314a;color:#7fc4ff;border-radius:99px;padding:7px 11px;font-size:9px;font-weight:800;cursor:pointer;white-space:nowrap}
+.vlan-control>small{color:#74818d}
+.vlan-control .lock-reason{color:#e9b46c;line-height:1.5}
+.vlan-edit{margin-top:13px;display:grid;gap:9px}
+.vlan-edit>label{margin:0}
+.vlan-action{min-height:40px;border:1px solid #2f75ae;background:#15314a;color:#7fc4ff;border-radius:8px;font-size:10px;font-weight:800;cursor:pointer}
+.vlan-action.secondary{border-color:#35414d;background:#0f151b;color:#b7c3cd}
+.vlan-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:230px;overflow:auto}
+.vlan-options button{display:flex;align-items:center;gap:9px;text-align:left;padding:9px 10px;border:1px solid color-mix(in srgb,var(--vlan-color) 45%,#35414d);border-radius:8px;background:#0f151b;cursor:pointer}
+.vlan-options button:hover,.vlan-options button:focus-visible{background:color-mix(in srgb,var(--vlan-color) 14%,#0f151b)}
+.vlan-options i{width:7px;height:26px;flex:0 0 auto;border-radius:4px;background:var(--vlan-color)}
+.vlan-options strong,.vlan-options small{display:block}
+.vlan-options strong{font-size:10px}
+.vlan-options small{margin-top:3px!important;color:#93a0ab!important;font-size:8px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vlan-edit-actions{display:flex;justify-content:flex-end;gap:8px}
+.vlan-edit-actions button{min-height:36px;padding:0 14px;border:1px solid #35414d;background:#0f151b;color:#b7c3cd;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer}
+.vlan-edit-actions button.primary{border-color:#2f75ae;background:#1d63a0;color:#fff}
+.vlan-edit-actions button:disabled{opacity:.55;cursor:not-allowed}
+.vlan-edit p{margin:0;font-size:10px;line-height:1.55}
+.change-summary{padding:11px 12px;background:#0f151b;border:1px solid #35414d;border-radius:8px}
+.change-warning{color:#e9b46c}
+.change-note{color:#7f8c97;font-size:9px!important}
+.vlan-edit.result p{padding:11px 12px;border-radius:8px}
+.vlan-edit.result.done p{background:#173029;border:1px solid #2b6a59;color:#79dfc1}
+.vlan-edit.result.error p{background:#461e1e;border:1px solid #7c3232;color:#ffaaa1}
+.pin-backdrop{z-index:40}
+.pin-dialog{display:grid;gap:12px}
+.pin-dialog h2{font-size:22px}
+.pin-dialog p{margin:0;color:#93a0ab;font-size:10px}
+.pin-dialog input{height:44px;background:#0b1117;border:1px solid #35414c;color:#eaf0f5;border-radius:8px;padding:0 12px;font-size:16px;letter-spacing:.2em;outline:none}
+.pin-dialog input:focus{border-color:#398bd1}
+.pin-dialog .pin-error{color:#ff9475;min-height:14px}
+@media(max-width:600px){.vlan-options{grid-template-columns:1fr}.edit-chip{margin-right:6px;padding:6px 9px}}
+.port-sheet{max-height:100dvh;overflow-y:auto;overscroll-behavior:contain}
