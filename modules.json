@@ -8,8 +8,8 @@
     "minHostVersion": "1.0.1"
   },
   "netgear": {
-    "version": "1.0.1",
-    "minHostVersion": "1.0.1"
+    "version": "1.1.0",
+    "minHostVersion": "1.0.4"
   },
   "record": {
     "version": "1.0.1",

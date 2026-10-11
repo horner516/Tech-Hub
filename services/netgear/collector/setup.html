@@ -42,14 +42,38 @@
           <label id="privField"><span>Encryption key</span><input name="privKey" type="password" minlength="8" autocomplete="new-password" placeholder="Enter AES encryption key"><small id="privHint">At least 8 characters.</small></label>
         </div>
       </section>
-      <section class="card compact-card">
-        <div class="step"><b>3</b><span><strong>Live polling</strong><small>How often the dashboard refreshes switch information.</small></span></div>
-        <label class="poll"><span>Polling interval</span><div class="select-wrap"><select name="pollSeconds"><option value="15">Every 15 seconds</option><option value="30">Every 30 seconds</option><option value="60">Every minute</option><option value="300">Every 5 minutes</option></select></div></label>
+      <section class="card">
+        <div class="step"><b>3</b><span><strong>Live polling</strong><small>Each lane runs a few switches at a time, so large sites stay light on the switches and the network.</small></span></div>
+        <div class="fields">
+          <label><span>Full switch read</span><div class="select-wrap"><select name="pollSeconds"><option value="15">Every 15 seconds</option><option value="30">Every 30 seconds</option><option value="60">Every minute</option><option value="300">Every 5 minutes</option></select></div><small>VLANs, endpoints, errors, optics and bandwidth for each known switch.</small></label>
+          <label><span>Link status checks</span><div class="select-wrap"><select name="statusSeconds"><option value="2">Every 2 seconds</option><option value="3">Every 3 seconds</option><option value="5">Every 5 seconds</option><option value="10">Every 10 seconds</option><option value="30">Every 30 seconds</option><option value="0">Off</option></select></div><small>One small SNMP request per switch, so port up/down shows almost immediately.</small></label>
+          <label class="wide"><span>Look for new switches</span><div class="select-wrap"><select name="discoverySeconds"><option value="60">Every minute</option><option value="300">Every 5 minutes</option><option value="900">Every 15 minutes</option><option value="3600">Every hour</option></select></div><small>Sweeps the whole management subnet. Known switches keep refreshing in between; “Scan network” sweeps right away.</small></label>
+        </div>
+      </section>
+      <section class="card">
+        <div class="step"><b>4</b><span><strong>Endpoint names</strong><small>Switches learn MAC addresses only. These sources add IPs and names for connected devices.</small></span></div>
+        <div class="fields">
+          <label class="wide"><span>Routers to read ARP tables from</span><input name="arpRouters" placeholder="10.15.10.1" autocomplete="off"><small>The gateway(s) for your device VLANs, separated by commas. Their ARP tables tie each switch-learned MAC to an IP on every VLAN they route. Read over SNMP once a minute.</small><small id="arpStatus"></small></label>
+          <label><span>Router SNMP access</span><div class="select-wrap"><select name="arpSnmp" id="arpSnmp"><option value="v3">Same SNMPv3 login as the switches</option><option value="v2c">SNMPv2c community</option></select></div></label>
+          <label id="arpCommunityField"><span>Router community</span><input name="arpCommunity" type="password" autocomplete="new-password" placeholder="Read-only community"><small id="arpCommunityHint">Read-only is enough.</small></label>
+          <label class="wide toggle"><input type="checkbox" name="endpointMdns" id="endpointMdns"><span>Name connected devices with Bonjour (mDNS)<small>Asks the networks this computer is on which devices are present (a few packets on the discovery interval) and shows their names, such as “CAM1” or “ATEM Constellation 8K”. Endpoint IPs also come from this computer's own ARP table, which needs no network traffic.</small></span></label>
+        </div>
+      </section>
+      <section class="card">
+        <div class="step"><b>5</b><span><strong>VLAN changes</strong><small>Lets unlocked dashboards move an access port to another AV network profile.</small></span><em id="editBadge">OFF</em></div>
+        <p class="note" id="assignmentNote" hidden></p>
+        <div class="fields">
+          <label class="wide toggle"><input type="checkbox" name="editingEnabled" id="editingEnabled"><span>Allow VLAN changes from the dashboard<small>Access ports only. Trunks, LAG members, uplinks and the port carrying this computer stay read-only. Each change is verified, saved to the switch's startup config and logged.</small></span></label>
+          <label><span>Switch admin username</span><input name="webUsername" autocomplete="off" placeholder="admin"><small>The AV interface login used on every switch.</small></label>
+          <label><span>Switch admin password</span><input name="webPassword" type="password" autocomplete="new-password" placeholder="Enter switch web password"><small id="webPasswordHint">Stays on this computer.</small></label>
+          <label><span>Edit PIN</span><input name="editPin" type="password" inputmode="numeric" autocomplete="new-password" minlength="4" maxlength="64" placeholder="Set an edit PIN"><small id="pinHint">Dashboards ask for this before changing a VLAN.</small></label>
+          <label class="toggle" id="clearPinField" hidden><input type="checkbox" name="clearEditPin"><span>Remove the edit PIN<small>Turns VLAN changes off for everyone until a new PIN is set.</small></span></label>
+        </div>
       </section>
       <div id="message" role="status"></div>
       <div class="actions"><a href="/">Cancel</a><button type="submit"><span>Save settings &amp; scan</span><i>→</i></button></div>
     </form>
-    <footer><span>●</span> SNMP credentials stay on this computer and are never exposed to dashboard clients.</footer>
+    <footer><span>●</span> SNMP keys, the switch admin password and the edit PIN stay on this computer and are never exposed to dashboard clients.</footer>
   </main>
   <script src="/setup.js"></script>
 </body>

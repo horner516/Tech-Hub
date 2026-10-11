@@ -48,6 +48,7 @@ function loadConfig(dir,definitions=builtins) {
   save(file,config);
   return config;
 }
+const serviceSessionCookies={ultrix:'techhub_ultrix_profile',netgear:'techhub_netgear_edit'};
 async function hashPassword(value) { const salt=crypto.randomBytes(16).toString('hex'); return {salt,hash:(await scrypt(value,salt,32)).toString('hex')}; }
 async function verifyPassword(value, stored) {
   if (!stored || typeof stored.salt!=='string' || !/^[a-f0-9]{64}$/.test(stored.hash)) return false;
@@ -333,8 +334,9 @@ async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), la
         const headers={...req.headers,host:`127.0.0.1:${d.backendPort}`}; delete headers.cookie;delete headers.authorization;
         headers['x-techhub-local-client']=administrator(req)?'1':'0';
         headers['accept-encoding']='identity';
-        // Preserve only Router Panel's profile session, never another service's cookies.
-        if(d.id==='ultrix'&&/^[a-f0-9]+$/.test(cookies.techhub_ultrix_profile||''))headers.cookie=`sid=${cookies.techhub_ultrix_profile}`;
+        // Preserve only the service's own `sid` session (Router Panel profile, NETGEAR edit unlock), never another service's cookies.
+        const sessionCookie=serviceSessionCookies[d.id];
+        if(sessionCookie&&/^[a-f0-9]+$/.test(cookies[sessionCookie]||''))headers.cookie=`sid=${cookies[sessionCookie]}`;
         if(headers.origin)headers.origin=`http://127.0.0.1:${d.backendPort}`;
         res.techHubRemoteAdmin=remoteAdministrator;
         activeResponses.get(d.id).add(res);
@@ -344,7 +346,7 @@ async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), la
         res.once('close',()=>{clearTimeout(sessionTimer);activeResponses.get(d.id).delete(res);});
         const upstream=http.request({hostname:'127.0.0.1',port:d.backendPort,path:req.url,method:req.method,headers},response=>{
           const outgoing={...response.headers};delete outgoing['set-cookie'];
-          if(d.id==='ultrix'&&response.headers['set-cookie'])outgoing['set-cookie']=response.headers['set-cookie'].filter(c=>c.startsWith('sid=')).map(c=>c.replace(/^sid=/,'techhub_ultrix_profile='));
+          if(sessionCookie&&response.headers['set-cookie'])outgoing['set-cookie']=response.headers['set-cookie'].filter(c=>c.startsWith('sid=')).map(c=>c.replace(/^sid=/,sessionCookie+'='));
           if(chrome.inject(req,res,response,outgoing,d.id))return;
           res.writeHead(response.statusCode,outgoing);response.pipe(res);
         });
