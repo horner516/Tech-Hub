@@ -12,7 +12,7 @@ app="$PWD/dist/linux-$arch/Tech-Hub"
 resources="$app/resources"
 rm -rf "$app"
 mkdir -p "$resources/hub" "$resources/drivers/power"
-"$GO_BINARY" -C services/power build -trimpath -o "$resources/drivers/power/power-server" .
+"$GO_BINARY" -C services/power build -trimpath -buildvcs=false -o "$resources/drivers/power/power-server" .
 "$PYTHON_BINARY" -m PyInstaller --noconfirm --clean --onedir --name dsan-server --distpath "build/linux-$arch/python-dist" --workpath "build/linux-$arch/python-work" --specpath "build/linux-$arch" --add-data "$PWD/services/dsan/index.html:." services/dsan/app.py
 cp -a "build/linux-$arch/python-dist/dsan-server" "$resources/drivers/dsan"
 cp "$NODE_BINARY" "$resources/node"

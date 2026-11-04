@@ -30,7 +30,7 @@ const root = path.resolve(__dirname, '..');
 function save(file, data) {
   const temp = file+'.tmp'; fs.writeFileSync(temp, JSON.stringify(data,null,2)+'\n',{mode:0o600}); fs.renameSync(temp,file);
 }
-function defaultDataDir(platform=process.platform,env=process.env,home=os.homedir()) { return platform==='win32'?path.join(env.LOCALAPPDATA||path.join(home,'AppData','Local'),'Streamline','Tech Hub'):platform==='linux'?path.join(env.XDG_DATA_HOME&&path.isAbsolute(env.XDG_DATA_HOME)?env.XDG_DATA_HOME:path.join(home,'.local','share'),'tech-hub'):path.join(home,'Library','Application Support','Tech Hub'); }
+function defaultDataDir(platform=process.platform,env=process.env,home=os.homedir()) { return platform==='win32'?path.join(env.LOCALAPPDATA||path.join(home,'AppData','Local'),'Streamline','Tech Hub'):platform==='linux'?path.posix.join(env.XDG_DATA_HOME&&path.posix.isAbsolute(env.XDG_DATA_HOME)?env.XDG_DATA_HOME:path.posix.join(home,'.local','share'),'tech-hub'):path.join(home,'Library','Application Support','Tech Hub'); }
 function loadConfig(dir,definitions=builtins) {
   fs.mkdirSync(dir,{recursive:true,mode:0o700});
   const file = path.join(dir,'config.json');

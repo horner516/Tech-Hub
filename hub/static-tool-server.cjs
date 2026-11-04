@@ -3,6 +3,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon','.jpg':'image/jpeg','.woff2':'font/woff2','.woff':'font/woff','.wasm':'application/wasm','.txt':'text/plain; charset=utf-8'};
 function createStaticServer(root){
  const base=fs.realpathSync(root);
+ const contained=file=>{const relative=path.relative(base,file);return relative!==''&&!path.isAbsolute(relative)&&relative!=='..'&&!relative.startsWith('..'+path.sep);};
  return http.createServer(async(req,res)=>{
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Cache-Control','no-store');
   const json=(status,value)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(req.method==='HEAD'?undefined:JSON.stringify(value));};
@@ -14,12 +15,12 @@ function createStaticServer(root){
   if(pathname.startsWith('/api/'))return json(404,{error:'Not found'});
   if(pathname.includes('\\')||pathname.includes('\0'))return json(403,{error:'Invalid path'});
   let file=path.resolve(base,'.'+(pathname==='/'?'/index.html':pathname));
-  if(!file.startsWith(base+path.sep))return json(403,{error:'Invalid path'});
+  if(!contained(file))return json(403,{error:'Invalid path'});
   try{
    try{file=await fs.promises.realpath(file);}catch(error){
     if(error.code==='ENOENT'&&String(req.headers.accept).includes('text/html')&&!path.extname(pathname))file=path.join(base,'index.html');else throw error;
    }
-   if(!file.startsWith(base+path.sep))return json(403,{error:'Invalid path'});
+   if(!contained(file))return json(403,{error:'Invalid path'});
    const stat=await fs.promises.stat(file);if(!stat.isFile())return json(404,{error:'Not found'});
    res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Content-Length':stat.size});
    if(req.method==='HEAD')return res.end();

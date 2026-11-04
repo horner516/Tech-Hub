@@ -2,5 +2,4 @@
 set -euo pipefail
 bundle="$(cd "$(dirname "$0")" && pwd)"
 export TECH_HUB_RESOURCES="$bundle/resources"
-export TECH_HUB_DATA_DIR="${TECH_HUB_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/tech-hub}"
 exec "$bundle/resources/node" "$bundle/resources/hub/server.cjs"
