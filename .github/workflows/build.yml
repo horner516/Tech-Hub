@@ -21,8 +21,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --dir services/netgear install --frozen-lockfile
       - run: pnpm --dir services/lux install --frozen-lockfile
-      - run: pnpm --dir services/pixel-peeker install --frozen-lockfile
-      - run: pnpm --dir services/otter-edid-editor install --frozen-lockfile
+      - run: pnpm --dir services/pixel-peeker install --frozen-lockfile --ignore-scripts
+      - run: pnpm --dir services/otter-edid-editor install --frozen-lockfile --ignore-scripts
       - run: pnpm --dir services/pixel-peeker test
       - run: pnpm --dir services/otter-edid-editor test
       - run: node --test services/netgear/test/*.test.mjs

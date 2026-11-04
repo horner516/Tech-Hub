@@ -1,6 +1,8 @@
 # Tech Hub 1.0.4 — next build
 
-- Restore **Lux Link** in Module Library and Full installers as a universal module. Existing device lists, passwords, ports and enabled settings are retained. Mac builds include the MA Web Remote screen reader; Windows supports the shared network/device tools without that Mac-only reader.
+- Add Linux ARM64/Raspberry Pi and x64 Full/Lite installers, a systemd background service, desktop browser shortcut, XDG storage and universal-module support. See LINUX.md for headless setup, boot configuration and platform limitations.
+
+- Restore **Lux Link** in Module Library and Full installers as a universal module. Existing device lists, passwords, ports and enabled settings are retained. Mac builds include the MA Web Remote screen reader; Windows and Linux support the shared network/device tools without that Mac-only reader.
 - Require Tech Hub administrator access for Lux inventory edits, discovery, port changes, network selection and transmitter changes. Viewers can read dashboards.
 - Add **Pixel Peeker** and **Otter EDID Editor** as local, offline browser-tool modules. Project and EDID data stays in the browser. Native host updates and each module’s updates remain separate.
 - Incorporate DeVore’s **NETGEAR 1.1.0** improvements: staggered polling, endpoint naming, and PIN-gated AV profile changes through the switch’s AV interface. Editing remains opt-in and protected ports remain locked.
