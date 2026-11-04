@@ -126,7 +126,7 @@ jobs:
       - name: Install Linux build dependencies
         run: |
           apt-get update
-          apt-get install -y python3-venv binutils iputils-ping
+          apt-get install -y python3-venv python3-dev binutils iputils-ping
           python3 -m venv /tmp/techhub-python
           /tmp/techhub-python/bin/pip install -r requirements-build.txt
       - uses: actions/setup-go@v5
