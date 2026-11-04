@@ -20,6 +20,10 @@ cp -R build/python-dist/dsan-server "$resources/drivers/dsan"
 cp "$NODE_BINARY" "$resources/node"
 cp hub/* "$resources/hub/"
 cp package.json "$resources/package.json"
+reader_app="$resources/MA Web Remote Reader.app"
+mkdir -p "$reader_app/Contents/MacOS"
+/usr/bin/clang -fobjc-arc -mmacosx-version-min=13.0 services/lux/native-mac/MAWebRemoteReader.m -o "$reader_app/Contents/MacOS/MA Web Remote Reader" -framework AppKit -framework Foundation -framework Vision -framework WebKit
+cp services/lux/native-mac/MAWebRemoteReader-Info.plist "$reader_app/Contents/Info.plist"
 if [[ ! -f dist/app-packages-universal/catalog.json ]]; then "$NODE_BINARY" scripts/build-universal.cjs; fi
 "$NODE_BINARY" scripts/bundle-services.cjs "$resources" --host-only
 cp dist/app-packages-universal/catalog.json "$resources/catalog.json"
@@ -37,7 +41,12 @@ make_dmg() {
   cp -R "$app" "$staging/"
   ln -s /Applications "$staging/Applications"
   cp INSTALL.md "$staging/Install Tech Hub.txt"
-  /usr/bin/hdiutil create -volname "Tech Hub $version" -fs HFS+ -srcfolder "$staging" -ov -format UDZO "$project_dir/dist/$filename"
+  local attempt
+  for attempt in 1 2 3; do
+    if /usr/bin/hdiutil create -volname "Tech Hub $version" -fs HFS+ -srcfolder "$staging" -ov -format UDZO "$project_dir/dist/$filename"; then break; fi
+    if [[ $attempt == 3 ]]; then echo "hdiutil create failed 3 times for $filename" >&2; exit 1; fi
+    sleep 10
+  done
   (cd dist && shasum -a 256 "$filename" > "$filename.sha256")
 }
 make_dmg Tech-Hub-macOS-arm64.dmg

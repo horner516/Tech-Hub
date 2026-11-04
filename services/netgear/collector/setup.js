@@ -48,13 +48,37 @@ async function loadInterfaces(){
 async function load(){
   const response=await fetch('/api/config');
   current=await response.json();
-  for(const key of ['subnet','username','pollSeconds'])form.elements[key].value=current[key]??'';
+  for(const key of ['subnet','username','pollSeconds','statusSeconds','discoverySeconds','webUsername'])form.elements[key].value=current[key]??'';
+  showEditing();
   securityLevel.value=current.securityLevel||'authPriv';
   updateSecurityFields();
   if(current.hasAuthKey){form.elements.authKey.placeholder='Saved — leave blank to keep';document.querySelector('#authHint').textContent='A key is securely retained locally.'}
   if(current.hasPrivKey){form.elements.privKey.placeholder='Saved — leave blank to keep';document.querySelector('#privHint').textContent='An AES key is securely retained locally.'}
   await loadInterfaces();
 }
+
+function showEditing(){
+  form.elements.editingEnabled.checked=!!current.editingEnabled;
+  form.elements.endpointMdns.checked=current.endpointMdns!==false;
+  form.elements.arpRouters.value=current.arpRouters||'';
+  form.elements.arpSnmp.value=current.arpSnmp||'v3';
+  updateArpFields();
+  if(current.hasArpCommunity){form.elements.arpCommunity.placeholder='Saved — leave blank to keep';document.querySelector('#arpCommunityHint').textContent='A community is retained locally.'}
+  document.querySelector('#arpStatus').textContent=Object.entries(current.arpStatus||{}).map(([ip,s])=>`${ip}: ${s.error?`not read (${s.error})`:`${s.entries} entries`}`).join(' · ');
+  const badge=document.querySelector('#editBadge');
+  const ready=current.editingEnabled&&current.hasEditPin&&current.hasWebPassword&&current.profileAssignmentReady;
+  badge.textContent=ready?'ON':current.editingEnabled?'NOT READY':'OFF';
+  badge.className=ready?'on':'off';
+  const note=document.querySelector('#assignmentNote');
+  note.hidden=!!current.profileAssignmentReady;
+  note.textContent=current.profileAssignmentReason||'';
+  if(current.hasWebPassword){form.elements.webPassword.placeholder='Saved — leave blank to keep';document.querySelector('#webPasswordHint').textContent='A password is retained locally.'}
+  document.querySelector('#clearPinField').hidden=!current.hasEditPin;
+  form.elements.editPin.placeholder=current.hasEditPin?'Saved — leave blank to keep':'Set an edit PIN';
+  document.querySelector('#pinHint').textContent=`${current.hasEditPin?'A PIN is set. Enter a new one to replace it; this signs out every unlocked dashboard.':'Dashboards ask for this before changing a VLAN.'} ${current.pinRule||''}`;
+}
+
+function updateArpFields(){const v2c=form.elements.arpSnmp.value==='v2c';document.querySelector('#arpCommunityField').hidden=!v2c;form.elements.arpCommunity.disabled=!v2c}
 
 async function waitForDashboard(){
   for(let i=0;i<30;i++){
@@ -66,6 +90,7 @@ async function waitForDashboard(){
 
 rescan.addEventListener('click',loadInterfaces);
 securityLevel.addEventListener('change',updateSecurityFields);
+form.elements.arpSnmp.addEventListener('change',updateArpFields);
 form.addEventListener('submit',async event=>{
   event.preventDefault();
   message.className='busy';
@@ -77,8 +102,8 @@ form.addEventListener('submit',async event=>{
     if(!response.ok)throw new Error(result.error);
     message.className='success';
     message.textContent=result.restartRequired?'Settings saved. Restart Netgear Discovery to apply the client interface change.':'Settings saved. Waiting for the dashboard…';
-    form.elements.authKey.value='';
-    form.elements.privKey.value='';
+    for(const key of ['authKey','privKey','webPassword','editPin','arpCommunity'])form.elements[key].value='';
+    form.elements.clearEditPin.checked=false;
     if(result.restartRequired)return;
     if(await waitForDashboard())location.href='/';
     else{message.className='error';message.textContent='Settings were saved, but the dashboard did not start. Restart Netgear Discovery and check logs/dashboard.log if needed.'}

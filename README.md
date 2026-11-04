@@ -1,14 +1,14 @@
 # Tech Hub
 
-One desktop application for **D’san Ready**, **Power Monitor**, **NETGEAR AV Switchboard**, **Record Monitor**, **Router Panel**, and **R-Too** for d&b amplifier monitoring. Install only the modules you need. The Full download includes all six modules, including R-Too. Tech Hub provides a local master page with their status, ports, and shareable network URLs.
+One desktop application for **D’san Ready**, **Power Monitor**, **NETGEAR AV Switchboard**, **Record Monitor**, **Router Panel**, **Lux Link**, **Pixel Peeker**, **Otter EDID Editor**, and **R-Too** for d&b amplifier monitoring. Install only the modules you need. The Full download includes all nine modules, including R-Too. Tech Hub provides a local master page with their status, ports, and shareable network URLs.
 
 ## Downloads
 
-Version **1.0.3** adds R-Too, searchable module browsing, and a developer submission process. Universal packages and the shared host runtime remain supported. Lux Link is paused; its saved settings are retained. See the [changelog](CHANGELOG.md).
+The next build, **1.0.4**, restores Lux Link, adds Pixel Peeker and Otter EDID Editor, incorporates DeVore’s NETGEAR 1.1.0 improvements, and simplifies setup, device status and sharing. Universal packages and the shared host runtime remain supported. Published downloads below remain on the latest released build until 1.0.4 ships. See the [changelog](CHANGELOG.md).
 
 ### Full w/all modules
 
-Tech Hub with all six modules included for offline installation.
+Tech Hub with all nine modules included for offline installation.
 
 - [Mac — Apple silicon](https://github.com/horner516/Tech-Hub/releases/latest/download/Tech-Hub-macOS-arm64-Full.dmg)
 - [Windows — x64](https://github.com/horner516/Tech-Hub/releases/latest/download/Tech-Hub-Windows-x64-Full-Setup.exe)
@@ -34,7 +34,7 @@ Universal packages for Mac and Windows.
 
 Open **Module Library** in the master page to install individual modules, **Install selected**, or **Install all modules**. Full installers unpack their included modules on first launch. To use an all-modules ZIP, choose **Module Library → Offline installation → Install offline bundle**. The ZIP must match the official catalog shipped with the host or a refreshed catalog. Do not extract it first. All installed modules remain available offline.
 
-Upgrading from 0.x retains service settings, passwords, and ports. The Host installer offers **Install previously enabled modules**; the Full installer includes all modules and respects saved enabled/disabled settings. Once a module is installed, its service slider controls whether it runs and appears in shared navigation. Module updates and rollback are separate from host updates. Uninstall removes module files while retaining settings. A newly added third-party module requires reopening Tech Hub once; the six bundled modules activate immediately.
+Upgrading from 0.x retains service settings, passwords, and ports. The Host installer offers **Install previously enabled modules**; the Full installer includes all modules and respects saved enabled/disabled settings. Once a module is installed, its service slider controls whether it runs and appears in shared navigation. Module updates and rollback are separate from host updates. Uninstall removes module files while retaining settings. A newly added third-party module requires reopening Tech Hub once; the nine bundled modules activate immediately.
 
 ### Browse and submit modules
 
@@ -52,7 +52,7 @@ Host updates remain separate. D’san and Power Monitor native engine changes st
 
 One module ZIP now works on both supported platforms. Tech Hub supplies Node 24, settings helpers, ports, logging and supervision. D’san and Power Monitor retain their tested native protocol engines as host-managed drivers; they have not been rewritten into JavaScript. Their UI packages are universal, while engine changes require a host update. NETGEAR AV Switchboard, Record Monitor, Router Panel, and R-Too run on shared Node. The Mac and Windows host installers remain platform-specific.
 
-Existing v1.0.0 modules continue to work (except paused Lux Link); use Module Library to update them to universal v1.0.1 packages. Settings, passwords and ports are retained. Lux Link is omitted from the catalog, navigation and new installations, and existing Lux data remains on disk.
+Existing v1.0.0 modules continue to work (including restored Lux Link on host 1.0.4+); use Module Library to update them to universal v1.0.1 packages. Settings, passwords and ports are retained. Lux Link returns to the catalog, navigation and Full installers in 1.0.4; existing devices, passwords, ports and enabled settings are retained. Its universal package uses the shared Node runtime. MA Web Remote screen reading uses a host-supplied macOS helper; Windows still supports network monitoring and device polling without that helper. Lux inventory edits, discovery, node changes and transmission require Tech Hub administrator access.
 
 ### Develop a module
 
@@ -69,6 +69,20 @@ Read-only d&b amplifier monitoring based on [Devore’s D80-Panel](https://githu
 [Download R-Too 1.0.0](https://github.com/horner516/Tech-Hub/releases/download/rtoo-v1.0.0/techhub-app-rtoo-1.0.0-universal.zip) · [Setup and source](services/rtoo/README.md)
 
 On older Tech Hub 1.0.1/1.0.2 installations, import the ZIP through **Module Library → Testing & evaluation**, then reopen Tech Hub. The imported module is labeled unofficial because it was installed manually. Open **R-Too → Settings** to enable discovery or enter amplifier addresses. No amplifier connections are made by default. In v1.0.3, R-Too is available in Module Library and included with Full installers. If you previously imported R-Too manually, uninstall that module before installing its catalog version; saved settings are retained.
+
+### Pixel Peeker and Otter EDID Editor — next build
+
+Both are universal offline modules in host 1.0.4 and the Full installer. **Pixel Peeker** designs LED walls, checks processor/port capacity, and exports reports and layouts. **Otter EDID Editor** builds, inspects and exports EDIDs, including tiled mosaic EDIDs. Their calculations and files remain in the browser; the host only serves their assets. Save/export work before clearing browser data or moving to another hostname, browser or port. Browser storage is separate for each origin; importing a module does not migrate projects from the hosted website.
+
+Their upstream hardware/export caveats remain in each app and README. Sources, licenses and pinned upstream commits are retained under `services/pixel-peeker` and `services/otter-edid-editor`.
+
+### Home page and setup
+
+The home page counts running modules against enabled installed modules, and shows a separate device-health summary. Unknown readings are labeled unverified; a running module alone does not prove devices are connected. Browser tools are labeled separately because they do not monitor devices. Setup shortcuts open each module’s existing device/settings UI. The recommended crew URL stays visible; additional addresses, passwords and restart controls are under **Other addresses & maintenance**.
+
+NETGEAR 1.1.0 incorporates the DevoreClaude branch’s staggered polling, endpoint naming and PIN-gated AV profile changes. Editing stays disabled until configured in NETGEAR settings. Stacked switches and protected ports remain locked. No real switch writes were used for integration testing.
+
+Record Monitor’s setup redesign is deferred until recorders are available for testing.
 
 ### Companion module
 
@@ -113,7 +127,7 @@ Signed-in administrators can manage services, access passwords, configuration, b
 
 ## Dashboard ports
 
-Tech Hub offers short Bonjour/mDNS names: `http://dsan.local`, `http://pd.local`, `http://netgear.local`, `http://record.local`, and `http://router.local`. `http://tech.local` opens a network module directory showing enabled services. Service passwords still apply; the administrative master page opens from the TH menu, with optional network access configured in Settings.
+Tech Hub offers short Bonjour/mDNS names: `http://dsan.local`, `http://lux.local`, `http://pd.local`, `http://netgear.local`, `http://record.local`, and `http://router.local`. `http://tech.local` opens a network module directory showing enabled services. Service passwords still apply; the administrative master page opens from the TH menu, with optional network access configured in Settings.
 
 On the master page, **Settings → Local network names → Machine identifier** adds an optional suffix to every name. For example, entering `stage1` produces `dsan-stage1.local`, `tech-stage1.local`, and `pd-stage1.local`. Leave it blank for the shortest names. Under **Service hostnames**, edit each module’s name independently (including the Tech Hub directory). Enter `dsan1` or `dsan1.local`; both produce `dsan1.local` with no machine identifier, or `dsan1-stage1.local` with identifier `stage1`. Names must be distinct within Tech Hub, and each name plus identifier must fit the 63-character DNS label limit. Use a different identifier for each Tech Hub computer on the same network. Identifiers accept up to 32 letters, numbers, and internal hyphens. Saving applies live; existing viewers should reopen the updated links. Name conflicts reported by another mDNS device disable that name and show a warning; choose another identifier or use an IP link. mDNS is not a central name registry, so deliberately assign unique identifiers on shared networks.
 
@@ -132,13 +146,13 @@ Hostnames work on the same local network where clients support mDNS and multicas
 
 ### Configure the new services
 
-Use **Configure switches** on the NETGEAR card to enter the management subnet and SNMPv3 credentials. Setup stays local to the host computer. The collector and dashboard share the service port; no separate port 8787 is needed. VLAN/profile assignment remains read-only.
+Use **Devices & settings** on the NETGEAR card to enter the management subnet and SNMPv3 credentials. Setup stays local to the host computer. The collector and dashboard share the service port; no separate port 8787 is needed. Optional AV profile changes require a configured edit PIN and switch web credentials. Protected ports remain read-only.
 
 Use **Configure** on Record Monitor to edit its JSON settings. Add entries to `devices`, for example `{"name":"Recorder","type":"hyperdeck","host":"192.168.1.50"}`. Use `kipro` for AJA units. Recording controls default to the host computer only (`controlLocalOnly`); disk formatting is disabled (`allowFormat: false`). Saving restarts only Record Monitor. See its [device options](services/record/README.md).
 
 Use **Configure routers** on Router Panel (formerly Ultrix Panel) to open its settings page. Like the NETGEAR setup page, it opens on the Tech Hub computer or for a signed-in network administrator. Save one or more routers, choose the type (**Ross Ultrix / SW-P-08** or **Blackmagic Videohub**), enter the address and port, and choose which router is **active**. Only the active router connects. Each saved router keeps its own levels, sources, destinations, categories, name overrides and access profiles. Switching the active router reconnects the panel with that router's setup. A blank address keeps a router disconnected. A Videohub has one level. Categories show a live preview of how the active router's names will be grouped. Existing Ultrix Panel settings are upgraded to one saved router automatically. See the [Router Panel configuration guide](services/ultrix/README.md). Facility configuration and exported router names are not included in public downloads.
 
-All six services use the same port-conflict avoidance, password gates, logs, and individual restart controls. Existing Tech Hub ports and passwords survive upgrades. Power Monitor runs without a separate Windows tray icon when launched by Tech Hub; the standalone Power Monitor module retains its own tray.
+All nine services use the same port-conflict avoidance, password gates, logs, and individual restart controls. Existing Tech Hub ports and passwords survive upgrades. Power Monitor runs without a separate Windows tray icon when launched by Tech Hub; the standalone Power Monitor module retains its own tray.
 
 See [third-party notices and source attribution](THIRD_PARTY.md).
 
@@ -190,7 +204,7 @@ Settings live in `~/Library/Application Support/Tech Hub/` on Mac and `%LOCALAPP
 - `dsan/`, `lux/`, `power/`: each service’s own saved configuration.
 - `logs/`: the hub and service logs.
 
-Use the TH menu to open configuration or logs. To change ports, quit Tech Hub, edit `config.json`, and reopen it. All seven ports must be unique integers between 1024 and 65535. Set `host` to `127.0.0.1` for local-only service access or `0.0.0.0` for LAN access.
+Use the TH menu to open configuration or logs. To change ports, quit Tech Hub, edit `config.json`, and reopen it. All admin, public and internal ports must be unique integers between 1024 and 65535. Set `host` to `127.0.0.1` for local-only service access or `0.0.0.0` for LAN access.
 
 Tech Hub checks GitHub for a newer desktop release at startup without delaying the services. When an update is available, the Mac module shows a notice and Windows shows a tray notification. Open **Check for Updates** in the TH menu or the **Tech Hub updates** section of the master page to see the installed and available versions and release notes for every newer version. Checks require internet access; offline operation of the services is unaffected. Companion-only releases and previews are excluded. Updates are downloaded and installed manually.
 
@@ -207,10 +221,13 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-build.txt
 pnpm install --frozen-lockfile
 pnpm --dir services/netgear install --frozen-lockfile
+pnpm --dir services/lux install --frozen-lockfile
+pnpm --dir services/pixel-peeker install --frozen-lockfile
+pnpm --dir services/otter-edid-editor install --frozen-lockfile
 PYTHON_BINARY="$PWD/.venv/bin/python" bash scripts/build-mac.sh
 ```
 
-The build creates `dist/Tech Hub.app`, `dist/Tech-Hub-macOS-arm64.dmg`, and its checksum. Set `NODE_BINARY` or `GO_BINARY` to override compiler/runtime paths. The source retains the paused Lux Link module; releases include six active modules and their regression tests; their individual documentation remains under `services/`.
+The build creates `dist/Tech Hub.app`, `dist/Tech-Hub-macOS-arm64.dmg`, and its checksum. Set `NODE_BINARY` or `GO_BINARY` to override compiler/runtime paths. The next build includes nine active modules and their regression tests; their individual documentation remains under `services/`.
 
 ```sh
 node --test tests/*.test.cjs
@@ -226,6 +243,9 @@ On Windows x64, install Node.js 24, Go 1.26, Python 3.12, .NET SDK 10, pnpm 11.1
 python -m pip install -r requirements-build.txt
 pnpm install --frozen-lockfile
 pnpm --dir services/netgear install --frozen-lockfile
+pnpm --dir services/lux install --frozen-lockfile
+pnpm --dir services/pixel-peeker install --frozen-lockfile
+pnpm --dir services/otter-edid-editor install --frozen-lockfile
 ./scripts/build-windows.ps1
 ```
 
@@ -233,8 +253,12 @@ GitHub Actions builds and smoke-tests both platforms. A `v*` tag publishes both 
 
 ## Source origins
 
-Integrated from the user’s existing D’san Master View 0.3.3, Lux Link 0.4.0 workspace, and Power Monitor 2.10.0 sources. Tech Hub adds orchestration, per-service access gates, a native Mac menu-bar host, isolated storage, and combined packaging. Lux Link is retained in source but paused in v1.0.1 releases. The standalone D’san floating desktop widgets are not included; its browser dashboard and full-screen display are included. Device behavior still depends on the hardware, network interface, and permissions available on the host Mac.
+Integrated from the user’s existing D’san Master View 0.3.3, Lux Link 0.4.0 workspace, and Power Monitor 2.10.0 sources. Tech Hub adds orchestration, per-service access gates, a native Mac menu-bar host, isolated storage, and combined packaging. Lux Link was paused in v1.0.1–1.0.3 and returns in v1.0.4. The standalone D’san floating desktop widgets are not included; its browser dashboard and full-screen display are included. Device behavior still depends on the hardware, network interface, and permissions available on the host Mac.
 
 ### PerfectCue display settings
 
 In D’san Ready → Settings → PerfectCue, set **Display time (seconds)** (0.1–60) and **Flash on multiple clicks**. Each click restarts the display time. Flashing applies to repeated clicks in the same direction while the arrow is lit. Settings apply to the dashboard, mobile view, and full-screen display. Existing installations default to two seconds with flashing enabled.
+
+### Linux / Raspberry Pi — next build
+
+Linux ARM64 and x64 Full/Lite installers are being added for 1.0.4. See [Linux installation, headless setup and limitations](LINUX.md). The same nine universal module packages work across supported hosts. Linux downloads will appear in the release after both native build jobs pass.

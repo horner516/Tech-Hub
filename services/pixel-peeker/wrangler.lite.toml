@@ -1,0 +1,23 @@
+# Cloudflare Worker config for the LITE variant.
+#
+# Separate from wrangler.toml so the two cannot collide: each file names one Worker and
+# one output directory, and `npm run deploy:lite` passes this one with -c. Sharing a
+# single config and overriding the name invites deploying the wrong build to the wrong
+# Worker.
+#
+# See README "Two builds". Build with `npm run build:lite` (writes dist-lite/), which
+# runs scripts/check-lite.mjs to prove the NovaStar exports really are gone.
+#
+# In the Cloudflare project for this Worker:
+#   Build command:  npm ci && npm run build:lite
+#   Deploy command: npx wrangler deploy -c wrangler.lite.toml
+name = "pixel-peeker-lite"
+compatibility_date = "2026-07-30"
+
+[assets]
+directory = "./dist-lite"
+# SPA routing. The Pages idiom for this is a `/*  /index.html  200` line in
+# `_redirects`, and the assets runtime rejects it outright — it reads the rule as
+# a loop ("would strip `/index` and trigger this rule again") and fails the whole
+# deploy, not just that route. `not_found_handling` is the Worker form.
+not_found_handling = "single-page-application"

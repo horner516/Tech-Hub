@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Add Linux ARM64 (Raspberry Pi 64-bit) and x64 Full/Lite packaging, a systemd user service and desktop shortcut. Accept universal modules on Linux, use XDG persistent storage, and correct Lux Linux ping timeout units. Add native Linux CI and packaged offline startup/access/shutdown checks.
+
+- Add Pixel Peeker and Otter EDID Editor as universal offline browser-tool modules with pinned source, retained MIT notices, local asset serving and no upload endpoint. Managed builds avoid PWA caches bypassing host lifecycle/access controls.
+- Incorporate the DevoreClaude branch’s NETGEAR 1.1.0 AV profile editing, scheduling, endpoint identification, isolated edit cookies and Mac DMG retry handling. Keep Lux and subsequent local changes; do not import unrelated Claude workflow files.
+- Add device-health summaries (including explicit unknown/tool states), common setup shortcuts and recommended crew links. Put technical/maintenance controls in expandable sections and preserve remote-administrator dashboard addresses. Defer Record Monitor setup changes pending hardware.
+
+- Restore Lux Link as a universal module for host 1.0.4, with catalog/offline installation, navigation, retained device data and administrator-only inventory/discovery/output changes. Bundle the MA Web Remote reader in the Mac host.
+- Add a first-launch module chooser, count only enabled installed modules in the running summary, hide developer/offline tools behind expandable sections, and prevent keyboard activation of unavailable dashboards.
+
 - Add a compact AI SDK starting guide, per-module brief/agent scaffolding, and standalone development CLI with context, structured checks, isolated-data administrator/viewer previews and packaging. Full host integration still requires real Tech Hub testing.
 
 

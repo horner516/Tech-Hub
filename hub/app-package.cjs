@@ -8,7 +8,7 @@ function validateManifest(m){
  if(typeof m.name!=='string'||!m.name.trim()||m.name.length>80||typeof m.description!=='string'||m.description.length>240)throw Error('Invalid app description');
  if(!version(m.version)||!version(m.minHostVersion)||!['node','native','shared'].includes(m.runtime)||!safePath(m.entry))throw Error('Invalid app runtime or version');
  if(!/^#[a-f0-9]{6}$/i.test(m.accent)||!Array.isArray(m.permissions)||m.permissions.some(p=>!['network','device-control','data-files'].includes(p)))throw Error('Invalid app appearance or permissions');
- if(!Array.isArray(m.platforms)||!m.platforms.length||m.platforms.some(p=>!['darwin-arm64','win32-x64','universal'].includes(p)))throw Error('Invalid app platforms');
+ if(!Array.isArray(m.platforms)||!m.platforms.length||m.platforms.some(p=>!['darwin-arm64','win32-x64','linux-arm64','linux-x64','universal'].includes(p)))throw Error('Invalid app platforms');
  if(m.runtime==='shared'&&(!['dsan','power'].includes(m.engine)||m.id!==m.engine||compare(m.minHostVersion,'1.0.1')<0))throw Error('Invalid shared runtime engine');
  if(m.platforms.includes('universal')&&(m.platforms.length!==1||m.runtime==='native'||compare(m.minHostVersion,'1.0.1')<0))throw Error('Universal apps require a shared runtime and host 1.0.1');
  if(m.runtimeAPI!==undefined&&(m.runtimeAPI!==1||compare(m.minHostVersion,'1.0.1')<0))throw Error('Unsupported runtime API');
@@ -22,7 +22,7 @@ function inspectArchive(bytes,{hostVersion,platform}){
  }
  const manifestEntry=zip.getEntry('techhub-app.json');if(!manifestEntry||manifestEntry.header.size>16384)throw Error('Missing app manifest');
  const manifest=validateManifest(JSON.parse(manifestEntry.getData().toString('utf8')));
- if(compare(manifest.minHostVersion,hostVersion)>0||!(manifest.platforms.includes(platform)||manifest.platforms.includes('universal')&&['darwin-arm64','win32-x64'].includes(platform)))throw Error('Package is incompatible with this host');
+ if(compare(manifest.minHostVersion,hostVersion)>0||!(manifest.platforms.includes(platform)||manifest.platforms.includes('universal')&&['darwin-arm64','win32-x64','linux-arm64','linux-x64'].includes(platform)))throw Error('Package is incompatible with this host');
  if(!zip.getEntry(manifest.entry)||zip.getEntry(manifest.entry).isDirectory)throw Error('App entry point is missing');
  if(manifest.platforms.includes('universal')&&entries.some(e=>/\.(exe|dll|node|dylib|so|pyd)$/i.test(e.entryName)))throw Error('Universal apps cannot bundle native binaries');
  return {manifest,entries};

@@ -1,0 +1,42 @@
+{
+  "name": "Pixel Peeker",
+  "short_name": "Pixel Peeker",
+  "description": "Design LED video walls: lay out cabinets, patch processors, and check port capacity against the maths the manufacturers publish.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0e1116",
+  "theme_color": "#0e1116",
+  "orientation": "any",
+  "shortcuts": [
+    {
+      "name": "Line calc",
+      "short_name": "Line calc",
+      "description": "How many panels fit on one processor port and one power circuit",
+      "url": "/#line"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ New-Item $testDir -ItemType Directory | Out-Null
 $oldData = $env:TECH_HUB_DATA_DIR
 $env:TECH_HUB_DATA_DIR = $testDir
 $hostProcess = $null
-$expectedServices = 6
+$expectedServices = 9
 try {
     $hostProcess = Start-Process -FilePath $app -PassThru
     $state = $null

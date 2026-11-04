@@ -39,7 +39,7 @@ export function DeviceDiscovery({ onAdd }: { onAdd:(devices:ManualDevice[])=>Pro
     finally { setSaving(false); }
   }
   return <Dialog open={open} onOpenChange={setOpen}>
-    <DialogTrigger render={<Button variant="outline" className="shrink-0 border-teal-300/30 bg-teal-300/5 text-teal-200 hover:bg-teal-300/10"/>}><Radar size={16}/> Discover Devices</DialogTrigger>
+    <DialogTrigger id="techhub-scan" render={<Button variant="outline" className="shrink-0 border-teal-300/30 bg-teal-300/5 text-teal-200 hover:bg-teal-300/10"/>}><Radar size={16}/> Discover Devices</DialogTrigger>
     <DialogContent className="max-h-[88vh] overflow-y-auto border-white/10 bg-[#151c21] text-slate-100 sm:max-w-4xl">
       <DialogHeader><DialogTitle className="flex items-center gap-2 text-xl"><Radar className="text-teal-300"/>Discover lighting devices</DialogTitle><DialogDescription className="text-slate-400">Read-only discovery for ProPlex and Art-Net nodes, MA Lighting consoles, and ETC Eos consoles. Review the results before adding them.</DialogDescription></DialogHeader>
       <div className="grid gap-4 rounded-lg border border-white/10 bg-black/15 p-4 md:grid-cols-[1fr_auto_auto] md:items-end">

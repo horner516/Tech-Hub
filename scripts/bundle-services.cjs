@@ -3,6 +3,17 @@ const fs=require('node:fs'),path=require('node:path');
 const destination=path.resolve(process.argv[2]),root=path.resolve(__dirname,'..');
 function copy(from,to){fs.mkdirSync(path.dirname(to),{recursive:true});fs.cpSync(from,to,{recursive:true,dereference:true,filter:p=>path.basename(p)!=='node_modules'});}
 if(!process.argv.includes('--host-only')){
+for(const id of ['pixel-peeker','otter-edid-editor']){
+ const target=path.join(destination,id),source=path.join(root,'services',id);
+ copy(path.join(source,'dist'),path.join(target,'public'));
+ copy(path.join(root,'hub/static-tool-server.cjs'),path.join(target,'server.cjs'));
+ for(const name of ['LICENSE','ATTRIBUTIONS.md','README.md','UPSTREAM.json'])copy(path.join(source,name),path.join(target,name));
+ fs.writeFileSync(path.join(target,'THIRD_PARTY-LICENSES.txt'),require('./frontend-licenses.cjs').frontendLicenses(source));
+}
+const lux=path.join(destination,'lux');
+for(const name of ['electron','lib','package.json'])copy(path.join(root,'services/lux',name),path.join(lux,name));
+copy(path.join(root,'services/lux/desktop-web'),path.join(lux,'dashboard'));
+copy(path.join(root,'hub/lux-server.cjs'),path.join(lux,'server.cjs'));
 require('./package-rtoo.cjs').stageRtoo(path.join(destination,'rtoo'));
 for(const id of ['record','ultrix']){
  const source=path.join(root,'services',id),target=path.join(destination,id);

@@ -1,0 +1,5 @@
+{
+  "repository": "https://github.com/davidadevore/pixel-peeker",
+  "commit": "0ba86a99d6f82237227d13883cf9f1a1a2c27b59",
+  "integration": "Static frontend served locally by Tech Hub; domain logic unchanged. Managed builds disable PWA caching so host access gates stay authoritative."
+}

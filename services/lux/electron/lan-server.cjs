@@ -55,6 +55,7 @@ async function startLanServer({ root, preferredPort = 47652, host = '0.0.0.0', l
     const foreignOrigin = req.headers['sec-fetch-site'] === 'cross-site' || (req.headers.origin && req.headers.origin !== `http://${req.headers.host}`);
     if (req.method === 'POST' && ['/api/devices', '/api/devices/refresh', '/api/devices/layout', '/api/devices/ports', '/api/transmitter', '/api/network-interface', '/api/discovery'].includes(pathname)) {
       res.setHeader('Content-Type', 'application/json');
+      if (process.env.TECH_HUB_MANAGED === '1' && req.headers['x-techhub-local-client'] !== '1') { res.writeHead(403); res.end(JSON.stringify({ error: 'Administrator access required.' })); return; }
       if (foreignOrigin) { res.writeHead(403); res.end('{}'); return; }
       if (!/^application\/json(?:;|$)/i.test(req.headers['content-type'] || '')) { res.writeHead(415); res.end('{}'); return; }
       let size = 0, oversized = false; const chunks = [];

@@ -1,0 +1,40 @@
+{
+  "name": "pixel-peeker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc -b",
+    "deploy": "npm run build && wrangler deploy",
+    "build:lite": "tsc -b && vite build --mode lite --outDir dist-lite && node scripts/check-lite.mjs",
+    "deploy:lite": "npm run build:lite && wrangler deploy -c wrangler.lite.toml"
+  },
+  "dependencies": {
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.85.0",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2",
+    "wrangler": "^4.145.0"
+  },
+  "description": "Design LED video walls: cabinet layout, processor patching, and port capacity calculated against published manufacturer figures.",
+  "license": "MIT",
+  "overrides": {
+    "sharp": "0.35.4"
+  }
+}

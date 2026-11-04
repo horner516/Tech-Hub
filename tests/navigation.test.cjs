@@ -11,7 +11,7 @@ test('all service pages get navigation; disabling persists and removes apps; in-
  }
  fs.writeFileSync(path.join(dir,'config.json'),JSON.stringify(c));hub=await startHub({dir,launch:false});
  const admin='http://127.0.0.1:29400',base=id=>'http://127.0.0.1:'+c.services[id].port;
- for(const d of definitions){const html=await fetch(base(d.id)).then(r=>r.text());assert.match(html,/\/__hub\/chrome.js/);assert.equal(html.includes('/__hub/theme.css'),['record','ultrix'].includes(d.id));const nav=await fetch(base(d.id)+'/__hub/navigation').then(r=>r.json());assert.equal(nav.current,d.id);assert.equal(nav.services.length,6);assert(!JSON.stringify(nav).includes('backendPort'));assert.deepEqual(await fetch(base(d.id)+'/api/data').then(r=>r.json()),{ok:true});}
+ for(const d of definitions){const html=await fetch(base(d.id)).then(r=>r.text());assert.match(html,/\/__hub\/chrome.js/);assert.equal(html.includes('/__hub/theme.css'),['record','ultrix'].includes(d.id));const nav=await fetch(base(d.id)+'/__hub/navigation').then(r=>r.json());assert.equal(nav.current,d.id);assert.equal(nav.services.length,9);assert(!JSON.stringify(nav).includes('backendPort'));assert.deepEqual(await fetch(base(d.id)+'/api/data').then(r=>r.json()),{ok:true});}
  const post=(url,body,headers={})=>fetch(url,{method:'POST',headers:{'content-type':'application/json',...headers},body:JSON.stringify(body)});
  assert.equal((await post(admin+'/api/enabled',{id:'power',enabled:false},{Origin:'http://evil.invalid'})).status,403);
  assert.equal((await post(admin+'/api/enabled',{id:'power',enabled:false})).status,200);

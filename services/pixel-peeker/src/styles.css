@@ -1,0 +1,557 @@
+/* Pixel Peeker — dark, dense, built to be read in a dim production office. */
+
+:root {
+  --bg: #0e1116;
+  --panel: #161b22;
+  --panel-2: #1c222b;
+  --line: #2a323d;
+  --ink: #e6edf3;
+  --muted: #8b949e;
+  --accent: #2f9ee0;
+  --accent-dim: #1b6fa3;
+  --ok: #3fb950;
+  --warn: #d29922;
+  --err: #f85149;
+  --radius: 6px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  /* Line calc view: data is --accent, power is this. */
+  --power: #f0883e;
+  --ink-dim: #b1bac4;
+  --line-soft: #20262f;
+
+  /* Read by the vendored support footer, which otherwise inherits page colour. */
+  --sw-support-accent: var(--accent);
+}
+
+* { box-sizing: border-box; }
+
+/*
+ * The tool still fills the viewport exactly (see `.app` below) — but the page
+ * itself is allowed to scroll past it, because the support footer is appended
+ * after #root and `overflow: hidden` here made it unreachable. Height moved off
+ * html/body/#root and onto `.app` as 100vh: leaving `height: 100%` here while
+ * body grew past the viewport left `.app`'s percentage height resolving against
+ * an auto-height parent, which collapsed the 1fr row and let the side panels
+ * grow without bound instead of scrolling inside themselves.
+ */
+html, body, #root {
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+button {
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 5px 10px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) { background: #232b36; border-color: #3a4552; }
+button:disabled { opacity: 0.4; cursor: default; }
+button.primary { background: var(--accent-dim); border-color: var(--accent); }
+button.primary:hover:not(:disabled) { background: var(--accent); }
+button.danger:hover:not(:disabled) { background: #5c1f1c; border-color: var(--err); }
+
+input, select, textarea {
+  font: inherit;
+  color: var(--ink);
+  background: #0d1117;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 4px 7px;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+input[type="number"] { font-family: var(--mono); }
+
+/* ---------------------------------------------------------------- layout */
+
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 8px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.brand span { color: var(--accent); }
+
+.topbar .name-input { width: 200px; }
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.field label {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+/* Horizontal label+control only in the top bar, where there is room for it. */
+.topbar .field input, .topbar .field select { width: auto; min-width: 62px; }
+
+.spacer { flex: 1; }
+
+.main {
+  display: grid;
+  grid-template-columns: 290px 1fr 330px;
+  min-height: 0;
+}
+
+.side {
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  min-height: 0;
+}
+.side.right {
+  border-right: none;
+  border-left: 1px solid var(--line);
+}
+
+/*
+ * `min-height: 0` is load-bearing, for the same reason it is on `.side` and
+ * `.main`: a grid item's automatic minimum size is its content's, and this one's
+ * content is an <svg> with a viewBox, so it has an intrinsic aspect ratio and
+ * therefore an intrinsic *height* derived from the stage's width. Without the
+ * clamp, that height becomes the base size of `.main`'s auto row, and the row
+ * grows past `.main` instead of being bounded by it.
+ *
+ * That turns into a latch, because WallCanvas measures the rendered <svg> and
+ * writes the ratio it measures back into the viewBox — so the SVG's own size
+ * determines the intrinsic ratio that determines the row height that determines
+ * the SVG's size. The loop is stable at any value, not just the right one. Grow
+ * the viewport and the row has slack, the SVG grows, the ResizeObserver fires
+ * and it re-converges; *shrink* it and the row stays at the SVG's intrinsic
+ * height, so the SVG never changes size, so the observer never fires and it
+ * never recovers. The row then overhangs `.app`, which carries the bottom-left
+ * `.overlay` toolbar below the fold and paints the side panels over the top of
+ * the support footer. Both of those were reported as Chrome-on-Windows bugs;
+ * the mechanism is not platform-specific, but Windows gets there first, because
+ * a classic 15px scrollbar (which the footer always forces) and the taller
+ * window chrome leave a shorter viewport than the same window on macOS.
+ *
+ * `overflow: hidden` both zeroes the automatic minimum size in its own right and
+ * keeps the SVG inside the stage. `.overlay` and `.hint` are positioned against
+ * the stage's padding box, so neither is clipped by it.
+ */
+.stage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 20px 20px,
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 20px 20px,
+    var(--bg);
+}
+
+/* ---------------------------------------------------------------- panels */
+
+.section {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 12px;
+}
+.section h2 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.section h2 .count { color: var(--accent); }
+
+.row { display: flex; gap: 6px; align-items: center; }
+.row + .row { margin-top: 6px; }
+.row > .field { min-width: 0; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-items: end; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; align-items: end; }
+
+/* In a sidebar the label goes above the control — side-by-side clips the input. */
+.side .field { display: block; min-width: 0; }
+.side .field label { display: block; margin-bottom: 2px; }
+.side .field input,
+.side .field select { width: 100%; min-width: 0; }
+.side .row > .field { flex: 1; }
+
+/* library */
+
+.lib-filter { margin-bottom: 8px; }
+
+.lib-item {
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+}
+.lib-item:hover { background: var(--panel-2); }
+.lib-item.active {
+  background: #16303f;
+  border-color: var(--accent);
+}
+.lib-item .model { font-weight: 600; }
+.lib-item .maker { color: var(--muted); font-size: 11px; }
+.lib-item .figs {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+.badge.unverified { background: #4a3a10; color: #e3b341; }
+.badge.verified { background: #12341c; color: var(--ok); }
+
+/* port table */
+
+.ports { width: 100%; border-collapse: collapse; font-size: 11px; }
+.ports th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 500;
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--line);
+}
+.ports td { padding: 3px 4px; font-family: var(--mono); }
+.ports tr.over td { color: var(--err); }
+.ports tr.tight td { color: var(--warn); }
+.ports .swatch {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 2px;
+  margin-right: 5px;
+}
+
+.meter {
+  height: 4px;
+  background: #0d1117;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 3px;
+}
+.meter > div { height: 100%; background: var(--accent); }
+.meter.tight > div { background: var(--warn); }
+.meter.over > div { background: var(--err); }
+
+/* issues */
+
+.issue {
+  display: flex;
+  gap: 7px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.issue:last-child { border-bottom: none; }
+.issue .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  margin-top: 5px; flex: none;
+}
+.issue.error .dot { background: var(--err); }
+.issue.warning .dot { background: var(--warn); }
+.issue.info .dot { background: var(--muted); }
+
+/* stats strip */
+
+.stats { display: flex; gap: 16px; flex-wrap: wrap; }
+.stat .k {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+}
+.stat .v { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+
+/* canvas overlay */
+
+.overlay {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  gap: 6px;
+  background: rgba(14, 17, 22, 0.85);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 5px;
+  backdrop-filter: blur(4px);
+}
+.hint {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  background: rgba(14, 17, 22, 0.8);
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  pointer-events: none;
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 6px 0;
+}
+
+.note {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+.note.warn { color: var(--warn); }
+
+kbd {
+  font-family: var(--mono);
+  font-size: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 0 4px;
+}
+
+/* ------------------------------------------------------------ view switch */
+
+.modes {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.modes button {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+.modes button + button { border-left: 1px solid var(--line); }
+.modes button.on { background: var(--accent-dim); color: var(--ink); }
+.modes button:hover:not(.on) { background: var(--panel-2); color: var(--ink); }
+
+.topbar .tagline { color: var(--muted); font-size: 12px; }
+/* On a phone the tagline costs a third of the screen before the answer starts. */
+@media (max-width: 700px) { .topbar .tagline { display: none; } }
+
+/* --------------------------------------------------------------- line calc */
+
+/*
+ * The Line calc view is a scrolling document inside a fixed-height app. `.app` is
+ * exactly 100vh with an `auto 1fr` grid, so this element IS the 1fr row: it scrolls
+ * itself, the page does not grow, and the support footer below `.app` stays where it
+ * is in both views. `min-height: 0` is load-bearing for the same reason it is on
+ * `.main` and `.stage` — without it the row sizes to the content and overhangs `.app`.
+ * (Line Calc as a standalone page needed `#root { min-height: 100% }` instead; that
+ * fix belongs to a page that scrolls, which this one deliberately does not.)
+ */
+.lc-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+.lc-main {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+@media (min-width: 1040px) { .lc-main { grid-template-columns: 340px minmax(0, 1fr); } }
+
+.lc-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+/* Sticky only where the whole input column fits: a stuck column taller than the
+   scroll box would hide its own bottom section until the very end of the scroll. */
+@media (min-width: 1040px) and (min-height: 980px) {
+  .lc-col--input { position: sticky; top: 0; }
+}
+
+.lc-box {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px 14px;
+}
+.lc-box h2 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.lc-field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 9px; min-width: 0; }
+.lc-field__label { font-size: 11px; color: var(--muted); }
+.lc-num__suffix { font-size: 11px; color: var(--muted); }
+.lc-num { display: flex; align-items: center; gap: 6px; }
+.lc-num input { flex: 1 1 auto; min-width: 0; }
+
+.lc-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lc-row2 > * { min-width: 0; }
+
+.lc-check { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--ink-dim); margin-top: 2px; }
+.lc-check input { width: auto; margin-top: 2px; accent-color: var(--accent); }
+.lc-check em { display: block; font-style: normal; color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+.lc-hint { margin: 8px 0 0; font-size: 11px; color: var(--muted); line-height: 1.45; }
+.lc-hint--warn { color: var(--warn); }
+.lc-hint--faint { opacity: 0.8; padding-top: 8px; border-top: 1px solid var(--line-soft); }
+
+.lc-spec { display: grid; gap: 0; margin: 2px 0 8px; }
+.lc-spec > div { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; padding: 3px 0; border-bottom: 1px solid var(--line-soft); }
+.lc-spec dt { color: var(--muted); }
+.lc-spec dd { margin: 0; font-family: var(--mono); font-size: 11.5px; text-align: right; }
+
+.lc-prov { margin: 0; font-size: 11px; line-height: 1.45; color: var(--muted); }
+.lc-prov--soft { color: var(--warn); }
+
+.lc-verdict {
+  border: 1px solid var(--line);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--panel-2), var(--panel));
+  padding: 16px 18px 18px;
+}
+.lc-verdict--data { border-left-color: var(--accent); }
+.lc-verdict--power { border-left-color: var(--power); }
+.lc-verdict--both { border-left-color: var(--ok); }
+.lc-verdict--bad { border-left-color: var(--err); }
+.lc-verdict h2 { margin: 0 0 8px; font-size: 19px; font-weight: 500; }
+.lc-verdict h2 strong { font-size: 32px; font-weight: 650; font-family: var(--mono); }
+.lc-verdict__eyebrow { margin: 0 0 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); }
+.lc-verdict__sub { color: var(--ink-dim); font-size: 14px; }
+.lc-verdict__why { margin: 0; color: var(--ink-dim); font-size: 12.5px; max-width: 78ch; }
+.lc-verdict__why b { color: var(--ink); font-weight: 600; }
+
+.lc-cards { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 720px) { .lc-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.lc-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-top-width: 2px;
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.lc-card--data { border-top-color: var(--accent); }
+.lc-card--power { border-top-color: var(--power); }
+.lc-card > header { margin-bottom: 10px; }
+.lc-card h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.lc-card > header p { margin: 2px 0 0; font-size: 11.5px; color: var(--muted); }
+
+.lc-stat { display: flex; flex-direction: column; gap: 1px; }
+.lc-stat--big { margin-bottom: 8px; }
+.lc-stat__label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); }
+.lc-stat__value { font-family: var(--mono); font-size: 19px; font-weight: 600; }
+.lc-stat--big .lc-stat__value { font-size: 38px; line-height: 1.1; }
+.lc-stat--data .lc-stat__value { color: var(--accent); }
+.lc-stat--power .lc-stat__value { color: var(--power); }
+.lc-stat__note { font-size: 11px; color: var(--ink-dim); }
+
+.lc-bar { height: 5px; background: #0d1117; border-radius: 3px; overflow: hidden; margin: 4px 0 6px; }
+.lc-bar__fill { display: block; height: 100%; border-radius: 3px; }
+.lc-bar--data .lc-bar__fill { background: var(--accent); }
+.lc-bar--power .lc-bar__fill { background: var(--power); }
+.lc-barnote { margin: 0 0 10px; font-size: 11px; color: var(--muted); line-height: 1.45; }
+
+.lc-detail { display: grid; gap: 0; margin: 0 0 10px; }
+.lc-detail > div { padding: 5px 0; border-top: 1px solid var(--line-soft); font-size: 12px; }
+.lc-detail dt { color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+.lc-detail dd { margin: 2px 0 0; color: var(--ink-dim); }
+.lc-detail dd em { font-style: normal; color: var(--muted); font-size: 11px; }
+
+.lc-published {
+  margin-top: auto;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  border: 1px solid var(--line-soft);
+}
+.lc-published h3 { margin: 0 0 6px; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); }
+.lc-published p { margin: 0 0 6px; font-size: 12px; color: var(--ink-dim); }
+.lc-published strong { color: var(--ink); }
+
+.lc-flag {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+  border-left: 2px solid var(--line);
+  padding-left: 10px;
+}
+.lc-flag--warn { border-left-color: var(--warn); }
+.lc-flag--bad { border-left-color: var(--err); color: var(--err); }
+
+.lc-src { margin: auto 0 0; padding-top: 10px; font-size: 10px; color: var(--muted); opacity: 0.75; line-height: 1.4; }
+
+.lc-wall { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+.lc-wall > header { margin-bottom: 12px; }
+.lc-wall h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.lc-wall > header p { margin: 2px 0 0; font-size: 11.5px; color: var(--muted); font-family: var(--mono); }
+.lc-wall__stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+
+.lc-foot { margin: 0; font-size: 11px; color: var(--muted); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .lc-bar__fill { transition: width 120ms ease-out; }
+}
+
+/* Power section in the designer's right sidebar */
+
+.circuits { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }
+.circuits th { text-align: left; color: var(--muted); font-weight: 500; padding: 3px 4px; border-bottom: 1px solid var(--line); }
+.circuits td { padding: 3px 4px; font-family: var(--mono); }
+.circuits td.num, .circuits th.num { text-align: right; }
+.circuits tr.over td { color: var(--err); }
+.check-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.check-row input { width: auto; }

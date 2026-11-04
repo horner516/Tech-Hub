@@ -12,6 +12,8 @@ Tech Hub with all official modules included for offline installation.
 
 - ${link('Mac — Apple silicon','Tech-Hub-macOS-arm64-Full.dmg')}
 - ${link('Windows — x64','Tech-Hub-Windows-x64-Full-Setup.exe')}
+- ${link('Linux / Raspberry Pi — ARM64','Tech-Hub-Linux-arm64-Full.tar.gz')}
+- ${link('Linux — x64','Tech-Hub-Linux-x64-Full.tar.gz')}
 
 ### Lite Installer
 
@@ -19,10 +21,12 @@ Tech Hub host and shared runtime. Choose and download modules from the Module Li
 
 - ${link('Mac — Apple silicon','Tech-Hub-macOS-arm64.dmg')}
 - ${link('Windows — x64','Tech-Hub-Windows-x64-Setup.exe')}
+- ${link('Linux / Raspberry Pi — ARM64','Tech-Hub-Linux-arm64-Lite.tar.gz')}
+- ${link('Linux — x64','Tech-Hub-Linux-x64-Lite.tar.gz')}
 
 ### Modules
 
-Universal module packages for both Mac and Windows. Install official modules through the Module Library; use the all-modules ZIP for offline installation.
+Universal module packages for Mac, Windows and Linux. Install official modules through the Module Library; use the all-modules ZIP for offline installation.
 
 - **${link('Download all modules','Tech-Hub-All-Apps.zip')}**
 ${apps.map(a=>`- ${link(a.name,new URL(a.packages.universal.url).pathname.split('/').pop())}`).join('\n')}

@@ -1,0 +1,5 @@
+{
+  "repository": "https://github.com/davidadevore/otter-edid-editor",
+  "commit": "5a88148c88d9764f1cc8fdb68b3f12464a71d939",
+  "integration": "Static frontend served locally by Tech Hub; domain logic unchanged. Managed builds disable PWA caching so host access gates stay authoritative."
+}

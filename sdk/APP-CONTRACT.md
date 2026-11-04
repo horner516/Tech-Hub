@@ -11,7 +11,7 @@ Every package contains `techhub-app.json` at its root. Required fields:
 - `entry`: a relative file path inside the package (Node entry point; UI entry for a reserved shared engine)
 - `accent`: a six-digit hexadecimal color
 - `permissions`: an array of declared capabilities (`network`, `device-control`, `data-files`)
-- `platforms`: `["universal"]` for new modules; legacy platform IDs are `darwin-arm64` and `win32-x64`
+- `platforms`: `["universal"]` for new modules; explicit platform IDs are `darwin-arm64`, `win32-x64`, `linux-arm64`, and `linux-x64`; Linux requires host 1.0.4+
 - `runtimeAPI`: `1` when using the shared helper API
 - `engine`: required only for `runtime: "shared"`; reserved official IDs `dsan` and `power`
 

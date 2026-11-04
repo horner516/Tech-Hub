@@ -1,9 +1,13 @@
-# Tech Hub 1.0.3
+# Tech Hub 1.0.4 — next build
 
-- Add **R-Too**, read-only d&b amplifier monitoring based on Devore’s D80-Panel: fleet status, input/output meters, channel details, faults, portable discovery, and manual amplifier addresses. Included in the catalog and Full installers.
-- Add **Browse modules** with search by name, purpose or developer and filters for available, installed and updatable modules.
-- Add developer attribution/source links and a **Submit a module** link, plus a GitHub submission form, review guide and catalog publishing tool. Approved new modules can be published without rebuilding the host.
+- Restore **Lux Link** in Module Library and Full installers as a universal module. Existing device lists, passwords, ports and enabled settings are retained. Mac builds include the MA Web Remote screen reader; Windows supports the shared network/device tools without that Mac-only reader.
+- Require Tech Hub administrator access for Lux inventory edits, discovery, port changes, network selection and transmitter changes. Viewers can read dashboards.
+- Add **Pixel Peeker** and **Otter EDID Editor** as local, offline browser-tool modules. Project and EDID data stays in the browser. Native host updates and each module’s updates remain separate.
+- Incorporate DeVore’s **NETGEAR 1.1.0** improvements: staggered polling, endpoint naming, and PIN-gated AV profile changes through the switch’s AV interface. Editing remains opt-in and protected ports remain locked.
+- Add separate device-health summaries, setup shortcuts and one recommended crew link; move ports, alternate addresses and maintenance into expandable details. Remote administrators open dashboards on the server’s address.
+- Add a clear first-launch **Choose modules** action and report running modules against the enabled, installed set.
+- Simplify Module Library with expandable developer/offline options, clearer selection behavior, and keyboard-safe unavailable dashboard links.
 
-Choose **Lite** to download selected modules or **Full** for all six modules included offline. Existing settings, passwords, ports and enabled services are retained. Discovery in R-Too starts disabled; configure it in R-Too → Settings. Physical amplifier testing remains outstanding.
+Lite installs selected modules; Full includes all nine modules offline. This source prepares the next release; desktop installers have not yet been published.
 
-If you manually imported R-Too on an earlier host, uninstall that module before installing the catalog version; its saved settings are retained. R-Too remains version 1.0.0; the other five modules remain 1.0.1. Lux Link remains paused.
+Record Monitor’s device setup redesign is deferred until physical recorders are available. Hardware behavior for newly imported tools has not been validated by this integration.

@@ -1,0 +1,4 @@
+/* Keep the fixed-height designer inside the space below Tech Hub's navigation. */
+html[data-tech-hub-service="pixel-peeker"] #root > .app {
+  height: calc(100dvh - var(--tech-hub-navigation-height, 68px));
+}

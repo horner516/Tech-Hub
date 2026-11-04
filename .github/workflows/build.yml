@@ -20,7 +20,14 @@ jobs:
           version: '11.19.0'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --dir services/netgear install --frozen-lockfile
+      - run: pnpm --dir services/lux install --frozen-lockfile
+      - run: pnpm --dir services/pixel-peeker install --frozen-lockfile
+      - run: pnpm --dir services/otter-edid-editor install --frozen-lockfile
+      - run: pnpm --dir services/pixel-peeker test
+      - run: pnpm --dir services/otter-edid-editor test
+      - run: node --test services/netgear/test/*.test.mjs
       - run: node scripts/build-universal.cjs
+      - run: node --test services/lux/tests/*.test.cjs services/lux/tests/*.test.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: universal-apps
@@ -102,9 +109,51 @@ jobs:
           name: mac-installer
           path: |
             dist/Tech-Hub-macOS-arm64*.dmg*
+  linux:
+    needs: apps
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+          - runner: ubuntu-24.04
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    container: node:24-bookworm
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux build dependencies
+        run: |
+          apt-get update
+          apt-get install -y python3-venv binutils iputils-ping
+          python3 -m venv /tmp/techhub-python
+          /tmp/techhub-python/bin/pip install -r requirements-build.txt
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.0'
+          cache: false
+      - run: npm install --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          name: universal-apps
+          path: dist
+      - run: node --test tests/*.test.cjs services/ultrix/test/*.test.js
+      - run: python3 -m unittest discover -s services/dsan -p "test_*.py"
+      - run: go -C services/power test ./...
+      - name: Build Linux installers
+        env:
+          PYTHON_BINARY: /tmp/techhub-python/bin/python
+        run: bash scripts/build-linux.sh
+      - name: Test packaged modules offline
+        run: dist/linux-${{ matrix.arch }}/Tech-Hub/resources/node scripts/smoke-linux.cjs dist/linux-${{ matrix.arch }}/Tech-Hub/resources
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}-installers
+          path: dist/Tech-Hub-Linux-${{ matrix.arch }}-*.tar.gz*
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [apps, windows, mac]
+    needs: [apps, windows, mac, linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write

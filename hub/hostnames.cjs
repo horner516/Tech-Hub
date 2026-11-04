@@ -12,7 +12,7 @@ function bonjour(onError){
  instance.server.mdns.on('warning',onError);
  return instance;
 }
-const aliases={master:'tech',dsan:'dsan',lux:'lux',power:'pd',netgear:'netgear',record:'record',ultrix:'router',rtoo:'rtoo'};
+const aliases={master:'tech',dsan:'dsan',lux:'lux',power:'pd',netgear:'netgear',record:'record',ultrix:'router',rtoo:'rtoo','pixel-peeker':'pixel','otter-edid-editor':'edid'};
 function validateNaming(value={suffix:'',portless:true},serviceIds=[]){
  const allowed={...aliases};for(const id of serviceIds)if(!Object.hasOwn(allowed,id)&&/^[a-z][a-z0-9-]{1,39}$/.test(id))allowed[id]=('app-'+id).slice(0,30).replace(/-$/,'');
  if(!value||typeof value.suffix!=='string'||typeof value.portless!=='boolean')throw Error('Choose a machine identifier and port-free setting.');

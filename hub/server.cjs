@@ -8,6 +8,7 @@ const {spawn} = require('node:child_process');
 const {supervise} = require('./supervisor.cjs');
 const serviceConfig = require('./service-config.cjs');
 const hyperdeckDiscovery = require('./hyperdeck-discovery.cjs');
+const {actionsFor}=require('./module-actions.cjs');
 const backups=require('./backups.cjs');
 const {serviceHostname,validateNaming}=require('./hostnames.cjs');
 const revision=value=>'"'+crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex')+'"';
@@ -20,13 +21,16 @@ const builtins = [
   {id:'record', name:'Record Monitor', detail:'HyperDeck & AJA Ki Pro', port:8705, backendPort:18705},
   {id:'ultrix', name:'Router Panel', detail:'Ross Ultrix & Blackmagic Videohub control', port:8706, backendPort:18706},
   {id:'rtoo', name:'R-Too', detail:'d&b amplifier monitoring', port:8707, backendPort:18707},
+  {id:'lux', name:'Lux Link', detail:'Lighting network monitoring & tools', port:8702, backendPort:18702},
+  {id:'pixel-peeker', name:'Pixel Peeker', detail:'LED wall layout, processing & capacity planning', port:8708, backendPort:18708},
+  {id:'otter-edid-editor', name:'Otter EDID Editor', detail:'Build, inspect & export EDIDs in your browser', port:8709, backendPort:18709},
 ];
 const escapeHTML=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const root = path.resolve(__dirname, '..');
 function save(file, data) {
   const temp = file+'.tmp'; fs.writeFileSync(temp, JSON.stringify(data,null,2)+'\n',{mode:0o600}); fs.renameSync(temp,file);
 }
-function defaultDataDir(platform=process.platform,env=process.env,home=os.homedir()) { return platform==='win32'?path.join(env.LOCALAPPDATA||path.join(home,'AppData','Local'),'Streamline','Tech Hub'):path.join(home,'Library','Application Support','Tech Hub'); }
+function defaultDataDir(platform=process.platform,env=process.env,home=os.homedir()) { return platform==='win32'?path.join(env.LOCALAPPDATA||path.join(home,'AppData','Local'),'Streamline','Tech Hub'):platform==='linux'?path.join(env.XDG_DATA_HOME&&path.isAbsolute(env.XDG_DATA_HOME)?env.XDG_DATA_HOME:path.join(home,'.local','share'),'tech-hub'):path.join(home,'Library','Application Support','Tech Hub'); }
 function loadConfig(dir,definitions=builtins) {
   fs.mkdirSync(dir,{recursive:true,mode:0o700});
   const file = path.join(dir,'config.json');
@@ -49,6 +53,7 @@ function loadConfig(dir,definitions=builtins) {
   return config;
 }
 async function hashPassword(value) { const salt=crypto.randomBytes(16).toString('hex'); return {salt,hash:(await scrypt(value,salt,32)).toString('hex')}; }
+const serviceSessionCookies={ultrix:'techhub_ultrix_profile',netgear:'techhub_netgear_edit'};
 async function verifyPassword(value, stored) {
   if (!stored || typeof stored.salt!=='string' || !/^[a-f0-9]{64}$/.test(stored.hash)) return false;
   const actual=await scrypt(value,stored.salt,32); return crypto.timingSafeEqual(actual,Buffer.from(stored.hash,'hex'));
@@ -64,14 +69,14 @@ function adminLogin(error=''){return loginPage('Tech Hub administration',error).
 async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), launch=true,checkUpdates=launch,advertise=launch,namedPort=80,hostnameOptions={},modular=launch,libraryOptions={},seedDir=process.env.TECH_HUB_SEED_DIR}={}) {
   const updates=require('./updates.cjs').createUpdateChecker(require('../package.json').version);
   const resources=process.env.TECH_HUB_RESOURCES||path.join(root,'build','resources');
-  const migrationFile=path.join(dir,'app-migration.json');let migration={recommended:[]};if(modular){fs.mkdirSync(dir,{recursive:true});if(fs.existsSync(migrationFile))migration=JSON.parse(fs.readFileSync(migrationFile,'utf8'));else{if(fs.existsSync(path.join(dir,'config.json')))migration.recommended=Object.entries(JSON.parse(fs.readFileSync(path.join(dir,'config.json'),'utf8')).services||{}).filter(([id,s])=>id!=='lux'&&s.enabled!==false).map(([id])=>id);save(migrationFile,migration);}}
+  const migrationFile=path.join(dir,'app-migration.json');let migration={recommended:[]};if(modular){fs.mkdirSync(dir,{recursive:true});if(fs.existsSync(migrationFile))migration=JSON.parse(fs.readFileSync(migrationFile,'utf8'));else{if(fs.existsSync(path.join(dir,'config.json')))migration.recommended=Object.entries(JSON.parse(fs.readFileSync(path.join(dir,'config.json'),'utf8')).services||{}).filter(([id,s])=>s.enabled!==false).map(([id])=>id);save(migrationFile,migration);}}
   const library=modular?require('./app-library.cjs').createLibrary({dir,hostVersion:require('../package.json').version,catalogPath:path.join(resources,'catalog.json'),...libraryOptions,beforeChange:async id=>{await supervisors.get(id)?.stop();if(activeResponses.has(id))invalidate(id);},afterChange:async id=>{
     const installed=library.read(id);if(!installed){states.set(id,{state:'uninstalled',error:null});viewers.remove(id);return;}
     if(!supervisors.has(id)){return;}
     if(config.services[id].enabled){supervisors.get(id).start();for(let i=0;i<110;i++){if(stopping)throw Error('Tech Hub is shutting down');if(states.get(id)?.state==='running')return;if(states.get(id)?.state==='error')break;await new Promise(r=>setTimeout(r,300));}throw Error('App did not become healthy. Previous version restored.');}
     states.set(id,{state:'disabled',error:null});
   }}):null;
-  const definitions=[...builtins];for(const app of library?.installed()||[])if(app.manifest.id!=='lux'&&!definitions.some(d=>d.id===app.manifest.id))definitions.push({id:app.manifest.id,name:app.manifest.name,detail:app.manifest.description,port:8800+definitions.length,backendPort:18800+definitions.length});
+  const definitions=[...builtins];for(const app of library?.installed()||[])if(!definitions.some(d=>d.id===app.manifest.id))definitions.push({id:app.manifest.id,name:app.manifest.name,detail:app.manifest.description,port:8800+definitions.length,backendPort:18800+definitions.length});
   const config=loadConfig(dir,definitions), sessions=new Map(), attempts=new Map(), states=new Map(), servers=[],supervisors=new Map();
   let hostnames,namedRouter;const gateways=new Map();let namingChange=false;
   const activeResponses=new Map(definitions.map(d=>[d.id,new Set()]));
@@ -83,8 +88,8 @@ async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), la
   const administrator=req=>local(req)||adminAccess.authorized(req);
   const adminHost=req=>{try{const url=new URL('http://'+req.headers.host);return url.port===String(config.adminPort)&&['127.0.0.1','localhost',...ips(config.host),serviceHostname('master',config.naming.suffix,config.naming.names)].includes(url.hostname);}catch{return false;}};
   const chrome=require('./service-chrome.cjs');
-  const isInstalled=id=>id!=='lux'&&(!library||!!library.read(id));
-  const navigation=(req,id)=>({current:id,adminPort:config.adminPort,local:administrator(req),settings:administrator(req)&&['record','ultrix'].includes(id),services:services.filter(s=>config.services[s.id].enabled&&isInstalled(s.id)).map(s=>({id:s.id,name:s.name,port:s.port,hostnameURL:hostnames?.info(s.id).hostnameURL,networkURL:ips(config.host)[0]?`http://${ips(config.host)[0]}:${s.port}`:null,protected:!!config.services[s.id].password,state:states.get(s.id)?.state}))});
+  const isInstalled=id=>(!library||!!library.read(id));
+  const navigation=(req,id)=>({current:id,adminPort:config.adminPort,local:administrator(req),settings:administrator(req)&&['record','ultrix'].includes(id),actions:administrator(req)?actionsFor(id):[],services:services.filter(s=>config.services[s.id].enabled&&isInstalled(s.id)).map(s=>({id:s.id,name:s.name,port:s.port,hostnameURL:hostnames?.info(s.id).hostnameURL,networkURL:ips(config.host)[0]?`http://${ips(config.host)[0]}:${s.port}`:null,protected:!!config.services[s.id].password,state:states.get(s.id)?.state}))});
   let discovering=false;
   async function discoverHyperDecks(req,res){
     if(!administrator(req)||!sameOrigin(req))return send(res,403,{error:'Discovery is available only on the Tech Hub computer.'});
@@ -145,7 +150,7 @@ async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), la
   }
   const logdir=path.join(dir,'logs'); fs.mkdirSync(logdir,{recursive:true,mode:0o700});
   const invalidate=id=>{for(const [key,s] of sessions) if(s.id===id)sessions.delete(key);for(const response of activeResponses.get(id))response.destroy();};
-  function status() {return {moduleUpdates:library?.snapshot().updateCount||0,name:'Tech Hub',version:require('../package.json').version,adminPort:config.adminPort,startedAt,remoteAdmin:{enabled:config.remoteAdmin.enabled,passwordSet:!!config.remoteAdmin.password,urls:ips(config.host).map(ip=>`http://${ip}:${config.adminPort}`)},naming:{...config.naming,...namedRouter?.state,directory:hostnames?.info('master')},services:services.map(d=>({installed:isInstalled(d.id),installedVersion:library?.read(d.id)?.manifest.version||null,id:d.id,name:d.name,detail:d.detail,port:d.port,enabled:config.services[d.id].enabled,protected:!!config.services[d.id].password,localURL:`http://127.0.0.1:${d.port}`,urls:ips(config.host).map(ip=>`http://${ip}:${d.port}`),...hostnames?.info(d.id),...states.get(d.id)}))};}
+  function status() {return {moduleUpdates:library?.snapshot().updateCount||0,name:'Tech Hub',version:require('../package.json').version,adminPort:config.adminPort,startedAt,remoteAdmin:{enabled:config.remoteAdmin.enabled,passwordSet:!!config.remoteAdmin.password,urls:ips(config.host).map(ip=>`http://${ip}:${config.adminPort}`)},naming:{...config.naming,...namedRouter?.state,directory:hostnames?.info('master')},services:services.map(d=>({installed:isInstalled(d.id),installedVersion:library?.read(d.id)?.manifest.version||null,id:d.id,name:d.name,detail:d.detail,actions:actionsFor(d.id),port:d.port,enabled:config.services[d.id].enabled,protected:!!config.services[d.id].password,localURL:`http://127.0.0.1:${d.port}`,urls:ips(config.host).map(ip=>`http://${ip}:${d.port}`),...hostnames?.info(d.id),...states.get(d.id)}))};}
   const diagnostics=require('./diagnostics.cjs').createDiagnostics(()=>services.map(d=>({...d,...states.get(d.id)})));
   for (const d of services) states.set(d.id,{state:'starting',error:null});
   const admin=http.createServer(async(req,res)=>{
@@ -238,6 +243,7 @@ async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), la
         }finally{changing.delete(id);}
       }
       if(req.method==='GET'&&['/favicon.ico','/__hub/favicon.svg'].includes(req.url))return send(res,200,fs.readFileSync(path.join(__dirname,'icon-hub.svg')),'image/svg+xml');
+      if(req.url==='/api/device-health'&&req.method==='GET')return send(res,200,await diagnostics.collect());
       if(req.url==='/api/diagnostics'&&req.method==='GET')return send(res,200,await diagnostics.collect());
       if(req.url==='/api/backup/list'&&req.method==='GET')return send(res,200,{backups:backups.list(dir)});
       if(req.url==='/api/backup/export'&&req.method==='POST'){
@@ -319,7 +325,7 @@ async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), la
           const token=crypto.randomBytes(32).toString('hex');sessions.set(token,{id:d.id,expires:Date.now()+12*3600000});attempts.delete(key);
           res.writeHead(303,{'Location':'/','Set-Cookie':`techhub_${d.id}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200`,'Cache-Control':'no-store'});res.end();return;
         }
-        if(req.method==='GET'&&req.url==='/__hub/navigation')return send(res,200,{...navigation(req,d.id),settings:!!authed&&administrator(req)&&['record','ultrix'].includes(d.id),authRequired:!authed,message:!authed?'Session expired or password required. Sign in again.':!config.services[d.id].enabled?'Service off. Choose another module.':states.get(d.id).state!=='running'?'Reconnecting — '+states.get(d.id).state:null});
+        if(req.method==='GET'&&req.url==='/__hub/navigation')return send(res,200,{...navigation(req,d.id),actions:!!authed&&administrator(req)?actionsFor(d.id):[],settings:!!authed&&administrator(req)&&['record','ultrix'].includes(d.id),authRequired:!authed,message:!authed?'Session expired or password required. Sign in again.':!config.services[d.id].enabled?'Service off. Choose another module.':states.get(d.id).state!=='running'?'Reconnecting — '+states.get(d.id).state:null});
         if(!authed) return send(res,401,req.url.startsWith('/api/')?{error:'Service password required'}:loginPage(d.name),req.url.startsWith('/api/')?'application/json':'text/html');
         if(req.method==='GET'&&req.url==='/__hub/navigation')return send(res,200,navigation(req,d.id));
         if(req.url==='/__hub/settings'&&['record','ultrix'].includes(d.id))return await configure(req,res,d.id);
@@ -333,8 +339,9 @@ async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), la
         const headers={...req.headers,host:`127.0.0.1:${d.backendPort}`}; delete headers.cookie;delete headers.authorization;
         headers['x-techhub-local-client']=administrator(req)?'1':'0';
         headers['accept-encoding']='identity';
-        // Preserve only Router Panel's profile session, never another service's cookies.
-        if(d.id==='ultrix'&&/^[a-f0-9]+$/.test(cookies.techhub_ultrix_profile||''))headers.cookie=`sid=${cookies.techhub_ultrix_profile}`;
+        // Forward only this module's own session, never another module's cookies.
+        const sessionCookie=serviceSessionCookies[d.id];
+        if(sessionCookie&&/^[a-f0-9]+$/.test(cookies[sessionCookie]||''))headers.cookie=`sid=${cookies[sessionCookie]}`;
         if(headers.origin)headers.origin=`http://127.0.0.1:${d.backendPort}`;
         res.techHubRemoteAdmin=remoteAdministrator;
         activeResponses.get(d.id).add(res);
@@ -344,7 +351,7 @@ async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), la
         res.once('close',()=>{clearTimeout(sessionTimer);activeResponses.get(d.id).delete(res);});
         const upstream=http.request({hostname:'127.0.0.1',port:d.backendPort,path:req.url,method:req.method,headers},response=>{
           const outgoing={...response.headers};delete outgoing['set-cookie'];
-          if(d.id==='ultrix'&&response.headers['set-cookie'])outgoing['set-cookie']=response.headers['set-cookie'].filter(c=>c.startsWith('sid=')).map(c=>c.replace(/^sid=/,'techhub_ultrix_profile='));
+          if(sessionCookie&&response.headers['set-cookie'])outgoing['set-cookie']=response.headers['set-cookie'].filter(c=>c.startsWith('sid=')).map(c=>c.replace(/^sid=/,sessionCookie+'='));
           if(chrome.inject(req,res,response,outgoing,d.id))return;
           res.writeHead(response.statusCode,outgoing);response.pipe(res);
         });
@@ -368,6 +375,7 @@ async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), la
       serviceConfig.read(dir,d.id);
       command=process.execPath;args=[path.join(resources,d.id,d.id==='record'?'server.js':'src/main.js'),'--config',serviceConfig.file(dir,d.id)];
     }
+    if(['pixel-peeker','otter-edid-editor'].includes(d.id)){command=process.execPath;args=[path.join(resources,d.id,'server.cjs')];}
     if(d.id==='rtoo'){command=process.execPath;args=[path.join(resources,'rtoo/server.js')];}
     const logPath=path.join(logdir,d.id+'.log');
     if(fs.existsSync(logPath)&&fs.statSync(logPath).size>5*1024*1024)fs.renameSync(logPath,logPath+'.previous');
@@ -377,7 +385,7 @@ async function startHub({dir=process.env.TECH_HUB_DATA_DIR||defaultDataDir(), la
         let appRoot=resources,assetRoot="";
         if(library){const installed=library.read(d.id);if(!installed)throw Error('Install this module from Module Library.');appRoot=installed.root;assetRoot=installed.manifest.runtime!=='native'?appRoot:"";({command,args}=require('./app-runtime.cjs').launchSpec(installed,{resources,dataDir,port:d.backendPort}));if(d.id==='power'&&installed.manifest.runtime==='native')args=['--host','127.0.0.1','--port',String(d.backendPort),'--config',path.join(dataDir,'settings.json'),'--no-browser'];if(['record','ultrix'].includes(d.id))args.push('--config',serviceConfig.file(dir,d.id));}
         const log=fs.openSync(logPath,'a',0o600);
-        const child=spawn(command,args,{windowsHide:true,env:{...process.env,TECH_HUB_APP_ROOT:assetRoot,TECH_HUB_RUNTIME_API:path.join(__dirname,'runtime-api.cjs'),TECH_HUB_MANAGED:'1',TECH_HUB_VERSION:require('../package.json').version,TECH_HUB_PUBLIC_PORT:String(d.port),TECH_HUB_PUBLIC_HOST:config.host,TECH_HUB_BACKEND_PORT:String(d.backendPort),TECH_HUB_BACKEND_HOST:'127.0.0.1',TECH_HUB_DATA_DIR:dataDir,LNA_APP_SUPPORT:dataDir,LNA_MA_READER:process.platform==='darwin'?path.join(appRoot,'MA Web Remote Reader.app','Contents','MacOS','MA Web Remote Reader'):''},stdio:['ignore',log,log]});fs.closeSync(log);return child;
+        const child=spawn(command,args,{windowsHide:true,env:{...process.env,TECH_HUB_APP_ROOT:assetRoot,TECH_HUB_RUNTIME_API:path.join(__dirname,'runtime-api.cjs'),TECH_HUB_MANAGED:'1',TECH_HUB_VERSION:require('../package.json').version,TECH_HUB_PUBLIC_PORT:String(d.port),TECH_HUB_PUBLIC_HOST:config.host,TECH_HUB_BACKEND_PORT:String(d.backendPort),TECH_HUB_BACKEND_HOST:'127.0.0.1',TECH_HUB_DATA_DIR:dataDir,LNA_APP_SUPPORT:dataDir,LNA_MA_READER:process.platform==='darwin'?path.join(resources,'MA Web Remote Reader.app','Contents','MacOS','MA Web Remote Reader'):''},stdio:['ignore',log,log]});fs.closeSync(log);return child;
       },
       check:async()=>{const response=await fetch(`http://127.0.0.1:${d.backendPort}/`,{signal:AbortSignal.timeout(1500)});await response.body?.cancel();return response.ok;},
       report:state=>{diagnostics.event(d.id,state);states.set(d.id,state);}

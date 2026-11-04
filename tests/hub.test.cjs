@@ -40,7 +40,7 @@ test('occupied master and public ports move, preserve other assignments and pers
  hub=await startHub({dir,launch:false});const selected=structuredClone(hub.config);
  assert.notEqual(selected.adminPort,c.adminPort);assert.notEqual(selected.services.power.port,c.services.power.port);
  assert.equal(selected.services.dsan.port,c.services.dsan.port);assert.equal(selected.services.record.port,c.services.record.port);
- assert.equal(new Set([selected.adminPort,...Object.values(selected.services).flatMap(s=>[s.port,s.backendPort])]).size,13);
+ assert.equal(new Set([selected.adminPort,...Object.values(selected.services).flatMap(s=>[s.port,s.backendPort])]).size,19);
  assert.equal((await fetch(`http://127.0.0.1:${selected.adminPort}/api/status`).then(r=>r.json())).adminPort,selected.adminPort);
  assert.equal(hub.status().services[1].localURL,`http://127.0.0.1:${selected.services.power.port}`);
  assert.equal(hub.status().services[1].state,'running');assert.deepEqual(loadConfig(dir),selected);

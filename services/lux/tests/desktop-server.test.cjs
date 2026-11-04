@@ -122,3 +122,20 @@ test('discovery endpoint is same-origin, server-owned and passes configured devi
     assert.equal((await fetch(lan.url+'/api/discovery',{method:'POST',headers:{Origin:'https://other.example','Content-Type':'application/json'},body:'{}'})).status,403);
   } finally { lan.server.closeAllConnections(); await new Promise(resolve => lan.server.close(resolve)); }
 });
+
+test('Tech Hub viewers can read Lux but only administrators can change its inventory or output', async () => {
+  const previous = process.env.TECH_HUB_MANAGED;
+  process.env.TECH_HUB_MANAGED = '1';
+  let lan;
+  try {
+    lan = await startLanServer({ root, preferredPort: 47690, host: '127.0.0.1', pollDevice: async () => ({}), listenerOptions: { ports: { sacn: 0, artnet: 0 }, bindAddress: '127.0.0.1', joinMulticast: false } });
+    assert.equal((await fetch(lan.url + '/api/devices')).status, 200);
+    for (const endpoint of ['/api/devices', '/api/discovery', '/api/transmitter', '/api/network-interface', '/api/devices/ports']) {
+      assert.equal((await fetch(lan.url + endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-techhub-local-client': '0' }, body: '{}' })).status, 403);
+    }
+    assert.equal((await fetch(lan.url + '/api/transmitter', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-techhub-local-client': '1' }, body: JSON.stringify({ enabled: false }) })).status, 200);
+  } finally {
+    if (lan) { lan.server.closeAllConnections(); await new Promise(resolve => lan.server.close(resolve)); }
+    if (previous === undefined) delete process.env.TECH_HUB_MANAGED; else process.env.TECH_HUB_MANAGED = previous;
+  }
+});

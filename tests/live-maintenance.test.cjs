@@ -17,7 +17,7 @@ test('live settings, encrypted backup/restore and diagnostics work through the h
  assert.equal((await fetch('http://127.0.0.1:29705/api/config').then(r=>r.json())).title,'Updated fixture panel');
  assert(hub.status().services.filter(s=>s.enabled).every(s=>s.state==='running'));
  assert.equal((fs.readFileSync(path.join(dir,'logs/record.log'),'utf8').match(/running with/g)||[]).length,1);
- const diagnostics=await fetch(admin+'/api/diagnostics').then(r=>r.json());assert.equal(diagnostics.services.length,6);assert(!JSON.stringify(diagnostics).includes('Updated fixture panel'));
+ const diagnostics=await fetch(admin+'/api/diagnostics').then(r=>r.json());assert.equal(diagnostics.services.length,9);assert(!JSON.stringify(diagnostics).includes('Updated fixture panel'));
  const passphrase='fixture-backup-passphrase';const exported=await post(admin+'/api/backup/export',{passphrase}).then(r=>r.json());assert.equal(exported.format,'tech-hub-encrypted-backup');
  const deny=await post(admin+'/api/backup/restore',{backup:exported,passphrase},{Origin:'http://evil.invalid'});assert.equal(deny.status,403);
  const result=await post(admin+'/api/backup/restore',{backup:exported,passphrase});assert.equal(result.status,200,await result.text());assert(hub.status().services.every(s=>s.state==='disabled'));
