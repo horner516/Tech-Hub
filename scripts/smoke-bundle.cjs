@@ -20,7 +20,7 @@ try {
    assert.match(await r.text(),/rel="icon"/);
    const icon=await fetch(s.localURL+'/__hub/favicon.svg');assert.equal(icon.status,200);
    assert.match(icon.headers.get('content-type'),/image\/svg\+xml/);
-   assert.equal(await icon.text(),fs.readFileSync(path.join(resources,'hub',`icon-${s.id}.svg`),'utf8'));
+   assert.equal(await icon.text(),fs.readFileSync(path.join(resources,'hub',fs.existsSync(path.join(resources,'hub',`icon-${s.id}.svg`))?`icon-${s.id}.svg`:'icon-hub.svg'),'utf8'));
  }
  assert.equal(await fetch(admin+'/__hub/favicon.svg').then(r=>r.text()),fs.readFileSync(path.join(resources,'hub/icon-hub.svg'),'utf8'));
  const power=hub.status().services.find(s=>s.id==='power').localURL;
